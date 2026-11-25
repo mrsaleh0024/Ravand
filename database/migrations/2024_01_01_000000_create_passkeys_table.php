@@ -13,14 +13,15 @@ return new class extends Migration
     {
         Schema::create('passkeys', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            // users.id is a ULID string (ADR-004) — keep the FK type in sync.
+            $table->string('user_id', 26)->index();
             $table->string('name');
             $table->string('credential_id')->unique();
             $table->json('credential');
             $table->timestamp('last_used_at')->nullable();
             $table->timestamps();
 
-            $table->index('user_id');
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
     }
 
