@@ -63,4 +63,26 @@ return [
         'IRT',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Owner bootstrap (.env)
+    |--------------------------------------------------------------------------
+    |
+    | Optional credentials for `ravand:create-owner` (ADR-018). When set in
+    | .env, the command runs without interactive prompts. Resolution order:
+    | CLI option > .env > hidden prompt. Intended for local/CI convenience —
+    | remove the values after the first boot and never run `config:cache`
+    | while they are set in production.
+    |
+    */
+
+    'owner' => [
+        'name' => env('RAVAND_OWNER_NAME'),
+        'email' => env('RAVAND_OWNER_EMAIL'),
+        'password' => env('RAVAND_OWNER_PASSWORD'),
+        'tenant_name' => env('RAVAND_TENANT_NAME'),
+        'tenant_slug' => env('RAVAND_TENANT_SLUG'),
+        'currency' => env('RAVAND_TENANT_CURRENCY'),
+    ],
+
 ];

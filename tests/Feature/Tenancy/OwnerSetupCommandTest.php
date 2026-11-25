@@ -44,6 +44,52 @@ class OwnerSetupCommandTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'owner.created', 'tenant_id' => $tenant->id]);
     }
 
+    public function test_command_reads_owner_credentials_from_config(): void
+    {
+        // Credentials provided via .env-backed config (ADR-018): the command
+        // must run fully non-interactive.
+        config([
+            'ravand.owner' => [
+                'name' => 'Env Owner',
+                'email' => 'env-owner@example.com',
+                'password' => 'S3cure-Passw0rd!phase01',
+                'tenant_name' => 'Env Store',
+                'tenant_slug' => 'env-store',
+                'currency' => 'IRR',
+            ],
+        ]);
+
+        $this->artisan('ravand:create-owner')->assertSuccessful();
+
+        $user = User::query()->where('email', 'env-owner@example.com')->firstOrFail();
+        $tenant = Tenant::query()->where('slug', 'env-store')->firstOrFail();
+
+        $this->assertSame('Env Owner', $user->name);
+        $this->assertSame('IRR', $tenant->default_currency);
+
+        $membership = TenantUser::query()->where('user_id', $user->id)->firstOrFail();
+        $this->assertSame('owner', $membership->role->value);
+    }
+
+    public function test_cli_options_take_priority_over_config(): void
+    {
+        config([
+            'ravand.owner' => [
+                'name' => 'Env Owner',
+                'email' => 'env-owner@example.com',
+                'password' => 'S3cure-Passw0rd!phase01',
+                'tenant_name' => 'Env Store',
+            ],
+        ]);
+
+        $this->artisan('ravand:create-owner', [
+            '--email' => 'cli-owner@example.com',
+        ])->assertSuccessful();
+
+        $this->assertNotNull(User::query()->where('email', 'cli-owner@example.com')->first());
+        $this->assertNull(User::query()->where('email', 'env-owner@example.com')->first());
+    }
+
     public function test_command_rejects_duplicate_email(): void
     {
         User::factory()->create(['email' => 'taken@example.com']);

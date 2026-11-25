@@ -23,7 +23,11 @@ use function Laravel\Prompts\text;
  *
  * - No public registration exists; this command is the entry point.
  * - Passwords are never stored in code/seeders and never echoed back.
- * - `--password` exists solely for automated environments (tests/CI).
+ * - Credentials may be provided via CLI options or .env variables
+ *   (RAVAND_OWNER_*) for local convenience; the interactive hidden
+ *   prompt is the safest path (see ADR-018).
+ *
+ * Resolution order per field: CLI option > .env/config > interactive prompt.
  */
 class CreateOwnerCommand extends Command
 {
@@ -33,26 +37,26 @@ class CreateOwnerCommand extends Command
         {--tenant-name= : Store name}
         {--slug= : Store slug (URL identifier, immutable later)}
         {--currency= : Default currency IRR|IRT}
-        {--password= : Password — automation only, never commit}';
+        {--password= : Password — automation/env only, never commit}';
 
     protected $description = 'Create the first owner account and its tenant securely (no public registration)';
 
     public function handle(AuditLogger $audit): int
     {
-        $name = $this->option('name') ?? text(label: 'نام نمایشی مالک', required: true);
-        $email = $this->option('email') ?? text(label: 'ایمیل مالک (شناسه ورود)', required: true);
-        $tenantName = $this->option('tenant-name') ?? text(label: 'نام فروشگاه', required: true);
-        $currency = $this->option('currency') ?? 'IRT';
-        $slugInput = $this->option('slug');
+        $name = $this->resolve('name', 'owner.name') ?? text(label: 'Owner display name', required: true);
+        $email = $this->resolve('email', 'owner.email') ?? text(label: 'Owner email (login identifier)', required: true);
+        $tenantName = $this->resolve('tenant-name', 'owner.tenant_name') ?? text(label: 'Store name', required: true);
+        $currency = $this->resolve('currency', 'owner.currency') ?? 'IRT';
+        $slugInput = $this->resolve('slug', 'owner.tenant_slug');
 
-        $password = $this->option('password');
+        $password = $this->resolve('password', 'owner.password');
 
         if ($password === null) {
-            $password = password(label: 'رمز عبور', required: true, validate: fn (string $value) => $this->validatePasswordPair($value, null) === [] ? null : implode(' — ', $this->validatePasswordPair($value, null)));
-            $confirmation = password(label: 'تکرار رمز عبور', required: true);
+            $password = password(label: 'Password', required: true, validate: fn (string $value) => $this->validatePasswordPair($value, null) === [] ? null : implode(' — ', $this->validatePasswordPair($value, null)));
+            $confirmation = password(label: 'Confirm password', required: true);
 
             if ($password !== $confirmation) {
-                $this->error('رمز عبور و تکرار آن یکسان نیستند.');
+                $this->error('The password and its confirmation do not match.');
 
                 return self::FAILURE;
             }
@@ -133,19 +137,34 @@ class CreateOwnerCommand extends Command
             metadata: ['role' => 'owner', 'user_id' => $user->id],
         );
 
-        $this->info('مالک و فروشگاه با موفقیت ایجاد شدند.');
+        $this->info('Owner and store created successfully.');
         $this->table(
-            ['کلید', 'مقدار'],
+            ['Key', 'Value'],
             [
-                ['نام مالک', $user->name],
-                ['ایمیل', $user->email],
-                ['فروشگاه', $tenant->name],
-                ['اسلاگ', $tenant->slug],
-                ['ارز', $tenant->default_currency],
+                ['Owner name', $user->name],
+                ['Email', $user->email],
+                ['Store', $tenant->name],
+                ['Slug', $tenant->slug],
+                ['Currency', $tenant->default_currency],
             ],
         );
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Resolve a value from the CLI option first, then the .env-backed config
+     * key. Empty/whitespace strings count as "not provided".
+     */
+    private function resolve(string $option, string $configKey): ?string
+    {
+        $value = $this->option($option) ?? config("ravand.{$configKey}");
+
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        return trim($value);
     }
 
     /**
@@ -162,7 +181,7 @@ class CreateOwnerCommand extends Command
     }
 
     /**
-     * @return array<int, string> validation errors for the password pair
+     * @param  array<int, string> validation errors for the password pair
      */
     private function validatePasswordPair(string $value, ?string $confirmation): array
     {

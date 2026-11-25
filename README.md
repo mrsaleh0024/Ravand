@@ -34,7 +34,21 @@
 php artisan ravand:create-owner
 ```
 
-این دستور نام، ایمیل و رمز را به‌صورت مخفی می‌پرسد و کاربر مالک + tenant اول را می‌سازد. برای اتوماسیون (فقط تست/CI) می‌توانید `--name --email --tenant-name --slug --currency --password` را بدهید.
+این دستور نام، ایمیل و رمز را به‌صورت مخفی می‌پرسد و کاربر مالک + tenant اول را می‌سازد.
+
+**روش دوم — از `.env` (بدون پرامپت):** می‌توانید مشخصات مالک را در فایل `.env` تعریف کنید تا دستور بدون سؤال اجرا شود (نمونه‌ها در `.env.example`):
+
+```dotenv
+RAVAND_OWNER_NAME="Saleh"
+RAVAND_OWNER_EMAIL="owner@example.com"
+RAVAND_OWNER_PASSWORD="YourPass12345"
+RAVAND_TENANT_NAME="فروشگاه من"
+RAVAND_TENANT_CURRENCY=IRT
+```
+
+سپس فقط `php artisan ravand:create-owner` را اجرا کنید. اولویت: گزینه‌های CLI > `.env` > پرامپت تعاملی. بعد از راه‌اندازی اول بهتر است `RAVAND_OWNER_PASSWORD` را از `.env` حذف کنید.
+
+برای اتوماسیون (فقط تست/CI) می‌توانید `--name --email --tenant-name --slug --currency --password` را هم بدهید.
 
 افزودن عضو به فروشگاه (فعلاً از CLI؛ دعوت در پنل به بعد موکول شده):
 
