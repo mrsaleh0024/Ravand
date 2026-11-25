@@ -3,19 +3,15 @@ import { wayfinder } from '@laravel/vite-plugin-wayfinder';
 import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import laravel from 'laravel-vite-plugin';
-import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
 export default defineConfig({
     plugins: lazyPlugins(() => [
+        // Fonts are self-hosted (Vazirmatn, see resources/css/app.css) —
+        // no external font CDN in the MVP (spec section 6.2).
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.ts'],
             refresh: true,
-            fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
-                }),
-            ],
         }),
         inertia(),
         tailwindcss(),

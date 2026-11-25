@@ -5,6 +5,7 @@ import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { t } from '@/lib/i18n';
 import { store } from '@/routes/password/confirm';
 /* @chisel-passkeys */
 import {
@@ -16,15 +17,15 @@ import PasskeyVerify from '@/components/PasskeyVerify.vue';
 
 defineOptions({
     layout: {
-        title: 'Confirm password',
+        title: 'تأیید رمز عبور',
         description:
-            'This is a secure area of the application. Please confirm your password before continuing.',
+            'این بخش از برنامه امن است. برای ادامه، رمز عبور خود را تأیید کنید.',
     },
 });
 </script>
 
 <template>
-    <Head title="Confirm password" />
+    <Head :title="t('auth.confirmTitle')" />
 
     <!-- @chisel-passkeys -->
     <PasskeyVerify
@@ -32,9 +33,9 @@ defineOptions({
             options: confirmOptions(),
             submit: confirmStore(),
         }"
-        label="Confirm with passkey"
-        loading-label="Confirming..."
-        separator="Or confirm with password"
+        label="تأیید با Passkey"
+        loading-label="در حال تأیید…"
+        separator="یا با رمز عبور تأیید کنید"
     />
     <!-- @end-chisel-passkeys -->
 
@@ -45,7 +46,7 @@ defineOptions({
     >
         <div class="space-y-6">
             <div class="grid gap-2">
-                <Label htmlFor="password">Password</Label>
+                <Label for="password">{{ t('auth.password') }}</Label>
                 <PasswordInput
                     id="password"
                     name="password"
@@ -65,7 +66,7 @@ defineOptions({
                     data-test="confirm-password-button"
                 >
                     <Spinner v-if="processing" />
-                    Confirm password
+                    {{ t('auth.confirmTitle') }}
                 </Button>
             </div>
         </div>

@@ -1,5 +1,6 @@
 import type { Directive } from 'vue';
 import type { Auth } from '@/types/auth';
+import type { Membership, TenantInfo, TenantRole } from '@/types/tenancy';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -18,7 +19,11 @@ declare module '@inertiajs/core' {
     export interface InertiaConfig {
         sharedPageProps: {
             name: string;
-            auth: Auth;
+            auth: Auth & {
+                role?: TenantRole | null;
+                memberships?: Membership[];
+            };
+            tenant?: TenantInfo | null;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

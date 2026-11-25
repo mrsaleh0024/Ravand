@@ -26,7 +26,7 @@ const stack = [
                 <span
                     class="rounded-full border border-neutral-200 px-3 py-1 text-xs text-neutral-600"
                 >
-                    نسخه MVP — فاز ۰۰
+                    نسخه MVP — فاز ۰۱
                 </span>
             </div>
         </header>
@@ -68,9 +68,10 @@ const stack = [
             >
                 <div class="text-sm font-medium">وضعیت این فاز</div>
                 <p class="mt-2 text-sm leading-7 text-neutral-600">
-                    زیرساخت پایه آماده است: اتصال به دیتابیس، migration اولیه و
-                    build فرانت‌اند. صفحات محصول، احراز هویت و پوسته کامل
-                    راست‌به‌چپ در فازهای بعدی اضافه می‌شوند.
+                    فاز ۰۱ آماده است: هویت و چندفروشگاهی (tenant)، نقش‌های
+                    مالک/مدیر/اپراتور، تعویض فروشگاه، لاگ حسابرسی و پوسته کامل
+                    راست‌به‌چپ با فونت وزیرمتن. ماژول‌های CRM و سفارش‌ها در فازهای
+                    بعدی اضافه می‌شوند.
                 </p>
             </div>
         </main>

@@ -1,7 +1,7 @@
 export type User = {
-    id: number;
+    id: string;
     name: string;
-    email: string;
+    email: string | null;
     avatar?: string;
     email_verified_at: string | null;
     /* @chisel-2fa */

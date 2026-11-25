@@ -2,6 +2,39 @@
 
 @import 'tw-animate-css';
 
+/* Vazirmatn — self-hosted Persian UI font (SIL OFL 1.1, see /public/fonts/vazirmatn/OFL.txt) */
+@font-face {
+    font-family: 'Vazirmatn';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/vazirmatn/Vazirmatn-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Vazirmatn';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/fonts/vazirmatn/Vazirmatn-Medium.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Vazirmatn';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/fonts/vazirmatn/Vazirmatn-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Vazirmatn';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/vazirmatn/Vazirmatn-Bold.woff2') format('woff2');
+}
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
@@ -9,9 +42,8 @@
 
 @theme inline {
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
+        'Vazirmatn', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);

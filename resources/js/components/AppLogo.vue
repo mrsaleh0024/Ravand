@@ -2,7 +2,8 @@
 import { usePage } from '@inertiajs/vue3';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 
-const name = usePage().props.name;
+const page = usePage();
+const tenantName = page.props.tenant?.name;
 </script>
 
 <template>
@@ -11,9 +12,12 @@ const name = usePage().props.name;
     >
         <AppLogoIcon class="size-5 fill-current text-white dark:text-black" />
     </div>
-    <div class="ml-1 grid flex-1 text-left text-sm">
-        <span class="mb-0.5 truncate leading-tight font-semibold">{{
-            name
-        }}</span>
+    <div class="ms-1 grid flex-1 text-start text-sm leading-tight">
+        <span class="truncate font-semibold">
+            {{ tenantName ?? 'رَوَند' }}
+        </span>
+        <span class="truncate text-xs text-muted-foreground">
+            {{ tenantName ? 'پنل فروشگاه' : 'Ravand' }}
+        </span>
     </div>
 </template>

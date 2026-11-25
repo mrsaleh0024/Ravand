@@ -7,6 +7,7 @@ import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/security';
+import { t } from '@/lib/i18n';
 /* @chisel-passkeys */
 import type { Props as ManagePasskeysProps } from '@/components/ManagePasskeys.vue';
 import ManagePasskeys from '@/components/ManagePasskeys.vue';
@@ -28,7 +29,7 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Security settings',
+                title: 'امنیت',
                 href: edit(),
             },
         ],
@@ -37,15 +38,15 @@ defineOptions({
 </script>
 
 <template>
-    <Head title="Security settings" />
+    <Head :title="t('nav.security')" />
 
-    <h1 class="sr-only">Security settings</h1>
+    <h1 class="sr-only">{{ t('nav.security') }}</h1>
 
     <div class="space-y-6">
         <Heading
             variant="small"
-            title="Update password"
-            description="Ensure your account is using a long, random password to stay secure"
+            :title="'به‌روزرسانی رمز عبور'"
+            description="برای حفظ امنیت حساب، از رمز عبور بلند و تصادفی استفاده کنید"
         />
 
         <Form
@@ -63,38 +64,38 @@ defineOptions({
             v-slot="{ errors, processing }"
         >
             <div class="grid gap-2">
-                <Label for="current_password">Current password</Label>
+                <Label for="current_password">رمز عبور فعلی</Label>
                 <PasswordInput
                     id="current_password"
                     name="current_password"
                     class="mt-1 block w-full"
                     autocomplete="current-password"
-                    placeholder="Current password"
+                    placeholder="رمز عبور فعلی"
                 />
                 <InputError :message="errors.current_password" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="password">New password</Label>
+                <Label for="password">رمز عبور جدید</Label>
                 <PasswordInput
                     id="password"
                     name="password"
                     class="mt-1 block w-full"
                     autocomplete="new-password"
-                    placeholder="New password"
+                    placeholder="رمز عبور جدید"
                     :passwordrules="props.passwordRules"
                 />
                 <InputError :message="errors.password" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="password_confirmation">Confirm password</Label>
+                <Label for="password_confirmation">تکرار رمز عبور جدید</Label>
                 <PasswordInput
                     id="password_confirmation"
                     name="password_confirmation"
                     class="mt-1 block w-full"
                     autocomplete="new-password"
-                    placeholder="Confirm password"
+                    placeholder="تکرار رمز عبور"
                     :passwordrules="props.passwordRules"
                 />
                 <InputError :message="errors.password_confirmation" />
@@ -105,7 +106,7 @@ defineOptions({
                     :disabled="processing"
                     data-test="update-password-button"
                 >
-                    Save
+                    {{ t('common.save') }}
                 </Button>
             </div>
         </Form>
