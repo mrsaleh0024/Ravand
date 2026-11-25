@@ -1,0 +1,65 @@
+# Ravand — محیط توسعه استاندارد (مسیر Docker Compose سند فنی)
+#
+# توجه: روی ماشین توسعه فعلی Docker نصب نیست و این فایل اجرا/تأیید نشده است.
+# مسیر جاری توسعه با XAMPP در README.fa.md توضیح داده شده است.
+#
+# اجرا:
+#   docker compose up -d --build
+#   docker compose exec app composer install
+#   docker compose exec app npm install && docker compose exec app npm run build
+#   docker compose exec app php artisan migrate
+
+services:
+    app:
+        build:
+            context: ./docker/php
+            dockerfile: Dockerfile
+        image: ravand-app:local
+        working_dir: /var/www/html
+        volumes:
+            - ./:/var/www/html
+        ports:
+            - '${APP_PORT:-8000}:8000'
+        env_file:
+            - .env
+        environment:
+            DB_HOST: mysql
+            DB_PORT: 3306
+        depends_on:
+            mysql:
+                condition: service_healthy
+        command: php artisan serve --host=0.0.0.0 --port=8000
+
+    mysql:
+        image: mysql:8.4
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: ${DB_DATABASE:-ravand}
+            MYSQL_USER: ${DB_USERNAME:-ravand}
+            MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root-secret}
+        ports:
+            # روی سیستم‌هایی که MySQL محلی (مثلاً XAMPP) پورت 3306 را گرفته، از 3307 استفاده کنید.
+            - '${DB_FORWARD_PORT:-3307}:3306'
+        volumes:
+            - mysql-data:/var/lib/mysql
+        command:
+            - --character-set-server=utf8mb4
+            - --collation-server=utf8mb4_unicode_ci
+        healthcheck:
+            test:
+                [
+                    'CMD',
+                    'mysqladmin',
+                    'ping',
+                    '-h',
+                    '127.0.0.1',
+                    '-p${MYSQL_ROOT_PASSWORD:-root-secret}',
+                ]
+            interval: 5s
+            timeout: 5s
+            retries: 20
+            start_period: 30s
+
+volumes:
+    mysql-data:
