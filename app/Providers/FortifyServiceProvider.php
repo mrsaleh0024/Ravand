@@ -2,13 +2,12 @@
 
 namespace App\Providers;
 
-/* @chisel-registration */
-
-use App\Actions\Fortify\CreateNewUser;
-/* @end-chisel-registration */
 use App\Actions\Fortify\ResetUserPassword;
+use App\Domain\Identity\UserStatus;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -39,13 +38,32 @@ class FortifyServiceProvider extends ServiceProvider
 
     /**
      * Configure Fortify actions.
+     *
+     * Public registration is intentionally disabled (spec phase 01): accounts
+     * are created only through the secure `ravand:create-owner` command.
      */
     private function configureActions(): void
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
-        /* @chisel-registration */
-        Fortify::createUsersUsing(CreateNewUser::class);
-        /* @end-chisel-registration */
+
+        Fortify::authenticateUsing(function (Request $request): ?User {
+            $identifier = trim((string) $request->input(Fortify::username()));
+            $password = (string) $request->input('password');
+
+            if ($identifier === '' || $password === '') {
+                return null;
+            }
+
+            $user = User::query()
+                ->where(Fortify::username(), Str::lower($identifier))
+                ->first();
+
+            if ($user === null || $user->status !== UserStatus::Active) {
+                return null;
+            }
+
+            return Hash::check($password, $user->password) ? $user : null;
+        });
     }
 
     /**
@@ -67,18 +85,6 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::requestPasswordResetLinkView(fn (Request $request) => Inertia::render('auth/ForgotPassword', [
             'status' => $request->session()->get('status'),
         ]));
-
-        /* @chisel-email-verification */
-        Fortify::verifyEmailView(fn (Request $request) => Inertia::render('auth/VerifyEmail', [
-            'status' => $request->session()->get('status'),
-        ]));
-        /* @end-chisel-email-verification */
-
-        /* @chisel-registration */
-        Fortify::registerView(fn () => Inertia::render('auth/Register', [
-            'passwordRules' => Password::defaults()->toPasswordRulesString(),
-        ]));
-        /* @end-chisel-registration */
 
         /* @chisel-2fa */
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/TwoFactorChallenge'));

@@ -167,13 +167,9 @@ return [
     */
 
     'features' => [
-        /* @chisel-registration */
-        Features::registration(),
-        /* @end-chisel-registration */
+        // Registration and email verification are intentionally disabled:
+        // accounts are created via the secure owner-setup command only.
         Features::resetPasswords(),
-        /* @chisel-email-verification */
-        Features::emailVerification(),
-        /* @end-chisel-email-verification */
         /* @chisel-2fa */
         Features::twoFactorAuthentication([
             'confirm' => true,

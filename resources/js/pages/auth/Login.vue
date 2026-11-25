@@ -8,19 +8,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-/* @chisel-registration */
-import { register } from '@/routes';
-/* @end-chisel-registration */
-import { store } from '@/routes/login';
-import { request } from '@/routes/password';
 /* @chisel-passkeys */
 import PasskeyVerify from '@/components/PasskeyVerify.vue';
 /* @end-chisel-passkeys */
+import { t } from '@/lib/i18n';
+import { store } from '@/routes/login';
+import { request } from '@/routes/password';
 
 defineOptions({
     layout: {
-        title: 'Log in to your account',
-        description: 'Enter your email and password below to log in',
+        title: 'ورود به حساب کاربری',
+        description: 'ایمیل و رمز عبور خود را وارد کنید',
     },
 });
 
@@ -31,7 +29,7 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Log in" />
+    <Head :title="t('auth.loginTitle')" />
 
     <div
         v-if="status"
@@ -41,7 +39,11 @@ defineProps<{
     </div>
 
     <!-- @chisel-passkeys -->
-    <PasskeyVerify />
+    <PasskeyVerify
+        label="ورود با Passkey"
+        loading-label="در حال ورود…"
+        separator="یا با ایمیل ادامه دهید"
+    />
     <!-- @end-chisel-passkeys -->
 
     <Form
@@ -52,12 +54,13 @@ defineProps<{
     >
         <div class="grid gap-6">
             <div class="grid gap-2">
-                <Label for="email">Email address</Label>
+                <Label for="email">{{ t('auth.email') }}</Label>
                 <Input
                     id="email"
                     type="email"
                     name="email"
                     required
+                    dir="ltr"
                     v-focus
                     :tabindex="1"
                     autocomplete="email"
@@ -68,14 +71,14 @@ defineProps<{
 
             <div class="grid gap-2">
                 <div class="flex items-center justify-between">
-                    <Label for="password">Password</Label>
+                    <Label for="password">{{ t('auth.password') }}</Label>
                     <TextLink
                         v-if="canResetPassword"
                         :href="request()"
                         class="text-sm"
                         :tabindex="5"
                     >
-                        Forgot your password?
+                        {{ t('auth.forgotPassword') }}
                     </TextLink>
                 </div>
                 <PasswordInput
@@ -84,15 +87,15 @@ defineProps<{
                     required
                     :tabindex="2"
                     autocomplete="current-password"
-                    placeholder="Password"
+                    :placeholder="t('auth.password')"
                 />
                 <InputError :message="errors.password" />
             </div>
 
             <div class="flex items-center justify-between">
-                <Label for="remember" class="flex items-center space-x-3">
+                <Label for="remember" class="flex items-center gap-3">
                     <Checkbox id="remember" name="remember" :tabindex="3" />
-                    <span>Remember me</span>
+                    <span>{{ t('auth.rememberMe') }}</span>
                 </Label>
             </div>
 
@@ -104,15 +107,8 @@ defineProps<{
                 data-test="login-button"
             >
                 <Spinner v-if="processing" />
-                Log in
+                {{ t('auth.login') }}
             </Button>
         </div>
-
-        <!-- @chisel-registration -->
-        <div class="text-center text-sm text-muted-foreground">
-            Don't have an account?
-            <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
-        </div>
-        <!-- @end-chisel-registration -->
     </Form>
 </template>
