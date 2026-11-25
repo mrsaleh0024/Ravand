@@ -4,24 +4,32 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreatesTenancy;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesTenancy, RefreshDatabase;
 
-    public function test_guests_are_redirected_to_the_login_page()
+    public function test_guests_are_redirected_to_the_login_page(): void
     {
         $response = $this->get(route('dashboard'));
         $response->assertRedirect(route('login'));
     }
 
-    public function test_authenticated_users_can_visit_the_dashboard()
+    public function test_authenticated_users_without_membership_are_sent_to_tenant_selection(): void
     {
         $user = User::factory()->create();
         $this->actingAs($user);
 
-        $response = $this->get(route('dashboard'));
-        $response->assertOk();
+        $this->get(route('dashboard'))->assertRedirect(route('tenant.index'));
+    }
+
+    public function test_owners_can_visit_the_dashboard(): void
+    {
+        [$owner, $tenant] = $this->createOwner('فروشگاه الف');
+        $this->actingAs($owner);
+
+        $this->get(route('dashboard'))->assertOk();
     }
 }
