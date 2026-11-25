@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -21,6 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+        ]);
+
+        // Tenant resolution from verified membership (phase 01, spec 2.2).
+        $middleware->alias([
+            'tenant' => EnsureTenantContext::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
