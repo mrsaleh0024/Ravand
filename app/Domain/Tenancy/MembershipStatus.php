@@ -3,18 +3,11 @@
 namespace App\Domain\Tenancy;
 
 /**
- * Status of a user membership inside a tenant.
+ * Status of a user membership inside a tenant. Display labels live in the
+ * UI layer.
  */
 enum MembershipStatus: string
 {
     case Active = 'active';
     case Revoked = 'revoked';
-
-    public function label(): string
-    {
-        return match ($this) {
-            self::Active => 'فعال',
-            self::Revoked => 'لغو‌شده',
-        };
-    }
 }

@@ -65,8 +65,9 @@ return [
     |
     */
 
-    // ذخیره تاریخ/زمان همیشه UTC است (ADR-005). نمایش شمسی و Asia/Tehran
-    // در لایه نمایش و تنظیمات tenant انجام می‌شود، نه با تغییر این مقدار.
+    // Dates/times are always stored as UTC (ADR-005). Jalali display and the
+    // Asia/Tehran tenant timezone belong to the presentation layer and tenant
+    // settings — never change this storage value.
     'timezone' => 'UTC',
 
     /*

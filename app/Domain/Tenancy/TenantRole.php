@@ -11,21 +11,13 @@ namespace App\Domain\Tenancy;
  *
  * Codes are stable English identifiers; only the current tenant role is
  * meaningful for authorization (evaluated server-side via TenantContext).
+ * Display labels live in the UI layer (resources/js/lib/i18n.ts).
  */
 enum TenantRole: string
 {
     case Owner = 'owner';
     case Manager = 'manager';
     case Operator = 'operator';
-
-    public function label(): string
-    {
-        return match ($this) {
-            self::Owner => 'مالک',
-            self::Manager => 'مدیر',
-            self::Operator => 'اپراتور',
-        };
-    }
 
     /** May view tenant settings (read-only for manager). */
     public function canViewSettings(): bool

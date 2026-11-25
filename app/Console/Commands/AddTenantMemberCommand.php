@@ -34,14 +34,14 @@ class AddTenantMemberCommand extends Command
 
         $user = User::query()->where('email', $email)->first();
         if ($user === null) {
-            $this->error('کاربری با این ایمیل یافت نشد.');
+            $this->error('No user found with this email.');
 
             return self::FAILURE;
         }
 
         $tenant = Tenant::query()->where('slug', $tenantSlug)->first();
         if ($tenant === null) {
-            $this->error('فروشگاهی با این اسلاگ یافت نشد.');
+            $this->error('No tenant found with this slug.');
 
             return self::FAILURE;
         }
@@ -64,7 +64,7 @@ class AddTenantMemberCommand extends Command
             ->first();
 
         if ($existing !== null) {
-            $this->error('این کاربر از قبل عضو این فروشگاه است.');
+            $this->error('This user is already a member of this tenant.');
 
             return self::FAILURE;
         }
@@ -86,7 +86,7 @@ class AddTenantMemberCommand extends Command
             metadata: ['role' => $role, 'user_id' => $user->id],
         );
 
-        $this->info("عضویت ثبت شد: {$user->email} → {$tenant->slug} ({$role})");
+        $this->info("Membership created: {$user->email} -> {$tenant->slug} ({$role})");
 
         return self::SUCCESS;
     }
