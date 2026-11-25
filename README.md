@@ -26,6 +26,39 @@
 
 ---
 
+## شروع سریع (هر بار)
+
+```powershell
+cd C:\Users\Lenovo\Desktop\Ravand
+.\dev.ps1
+```
+
+این اسکریپت به‌ترتیب:
+
+1. نسخه PHP را بررسی می‌کند (حداقل 8.3)
+2. در صورت نبود `.env` آن را می‌سازد و `APP_KEY` تولید می‌کند
+3. MySQL داخل XAMPP را در صورت خاموش بودن روشن می‌کند
+4. دیتابیس و migrationها را آماده می‌کند
+5. در صورت نبود، `composer install` و `npm install` را اجرا می‌کند
+6. هم‌زمان سه پروسه را بالا می‌آورد: وب‌سرور، صف و Vite
+
+با **Ctrl + C** هر سه پروسه با هم بسته می‌شوند.
+
+> روی برخی سیستم‌ها اجرای اسکریپت با خطای Execution Policy متوقف می‌شود. در این حالت `.\dev.cmd` را اجرا کنید (همان کار را با دور زدن policy انجام می‌دهد) یا یک‌بار `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` را اجرا کنید.
+
+---
+
+## اجرای دستی (بدون اسکریپت)
+
+```powershell
+cd C:\Users\Lenovo\Desktop\Ravand
+composer dev
+```
+
+معادل سه پروسه بالا بدون بررسی‌های خودکار. برای اجرای فقط وب‌سرور: `php artisan serve`.
+
+---
+
 ## اجرای محلی روی ویندوز (XAMPP)
 
 ```powershell
