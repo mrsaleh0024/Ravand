@@ -14,3 +14,6 @@ npm run build
 ```
 
 The GitHub Actions workflow uses PHP 8.4 and an in-memory SQLite database for its setup migration and feature tests.
+
+
+The full-project PHPStan analysis currently reports 252 existing baseline issues across unrelated models and services; it is not used as a gate for this focused CRM change. The workflow still runs Vue type checking, PHP formatting, and the full PHPUnit suite.
