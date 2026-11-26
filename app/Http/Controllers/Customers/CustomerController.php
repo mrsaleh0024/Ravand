@@ -118,6 +118,7 @@ class CustomerController extends Controller
             'social_platform' => ['nullable', 'string', Rule::in(Fields::SOCIAL_PLATFORMS)],
             'social_handle' => ['nullable', 'string', 'max:120'],
             'acquisition_channel' => ['nullable', 'string', Rule::in(Fields::ACQUISITION_CHANNELS)],
+            'province' => ['nullable', 'string', 'max:60'],
             'city' => ['nullable', 'string', 'max:60'],
             'note' => ['nullable', 'string', 'max:2000'],
             'force' => ['nullable', 'boolean'],
@@ -181,6 +182,7 @@ class CustomerController extends Controller
                 $customer->addresses()->create([
                     'tenant_id' => $tenant->id,
                     'title' => 'main',
+                    'province' => $validated['province'] ?? null,
                     'city' => $validated['city'],
                     'is_default' => true,
                 ]);
