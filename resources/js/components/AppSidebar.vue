@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { Building2, LayoutGrid, ScrollText, ShieldCheck, Users } from '@lucide/vue';
+import { Building2, LayoutGrid, ScrollText, ShieldCheck, Users, UserSquare2 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sidebar';
 import { t } from '@/lib/i18n';
 import { dashboard } from '@/routes';
+import { index as customersIndex } from '@/routes/customers';
 import { index as membersIndex } from '@/routes/panel/members';
 import { index as requestsIndex } from '@/routes/panel/reset-requests';
 import { index as auditIndex } from '@/routes/tenant/audit';
@@ -32,6 +33,11 @@ const mainNavItems = computed<NavItem[]>(() => {
             title: t('nav.dashboard'),
             href: dashboard(),
             icon: LayoutGrid,
+        },
+        {
+            title: t('nav.customers'),
+            href: customersIndex(),
+            icon: UserSquare2,
         },
     ];
 
