@@ -42,4 +42,4 @@ jobs:
         run: npm run check:fix
 
       - name: Run CI Checks
-        run: composer ci:check
+        run: npm run check && npm run types:check && composer lint:check && php artisan test
