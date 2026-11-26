@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -27,10 +28,18 @@ return Application::configure(basePath: dirname(__DIR__))
         // Tenant resolution from verified membership (phase 01, spec 2.2).
         $middleware->alias([
             'tenant' => EnsureTenantContext::class,
+            // Mandatory password change after a temporary password (ADR-021).
+            'password.changed' => EnsurePasswordChanged::class,
+        ]);
+
+        $middleware->validateCsrfTokens(except: [
+            // Bale bot webhook: authenticated via the shared secret header
+            // instead of the CSRF token (ADR-020).
+            'webhooks/bale/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
+            fn (Request $request) => $request->is('api/*') || $request->is('webhooks/*') || $request->expectsJson(),
         );
     })->create();

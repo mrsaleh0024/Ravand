@@ -72,7 +72,7 @@ const switchTo = (tenantId: string) => {
                 >
                     <!-- Tenant switcher: active memberships of this user only. -->
                     <DropdownMenuLabel v-if="memberships.length > 0">
-                        فروشگاه‌ها
+                        {{ t('nav.tenants') }}
                     </DropdownMenuLabel>
                     <DropdownMenuItem
                         v-for="membership in memberships"
@@ -95,7 +95,7 @@ const switchTo = (tenantId: string) => {
                         <div
                             class="flex items-center gap-2 px-1 py-1.5 text-start text-sm"
                         >
-                            <UserInfo :user="user" :show-email="true" />
+                            <UserInfo :user="user" :show-phone="true" />
                             <span
                                 v-if="role"
                                 class="ms-auto rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground"

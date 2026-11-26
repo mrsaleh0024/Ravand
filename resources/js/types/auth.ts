@@ -1,14 +1,8 @@
 export type User = {
     id: string;
     name: string;
-    email: string | null;
+    phone: string;
     avatar?: string;
-    email_verified_at: string | null;
-    /* @chisel-2fa */
-    two_factor_enabled?: boolean;
-    /* @end-chisel-2fa */
-    created_at: string;
-    updated_at: string;
     [key: string]: unknown;
 };
 
@@ -16,20 +10,19 @@ export type Auth = {
     user: User;
 };
 
-/* @chisel-passkeys */
-export type Passkey = {
-    id: number;
-    name: string;
-    authenticator: string | null;
-    created_at_diff: string;
-    last_used_at_diff: string | null;
+export type BaleConfig = {
+    isOwner: boolean;
+    chatId: string | null;
+    codeBot: boolean;
+    adminBot: boolean;
+    enabled: boolean;
 };
-/* @end-chisel-passkeys */
 
-/* @chisel-2fa */
-export type TwoFactorConfigContent = {
-    title: string;
-    description: string;
-    buttonText: string;
+/** One-time temporary password flash shown after issuing a temp password. */
+export type TempPasswordFlash = {
+    user: string;
+    phone: string;
+    password: string;
 };
-/* @end-chisel-2fa */
+
+export type BaleTestResult = Record<string, boolean>;

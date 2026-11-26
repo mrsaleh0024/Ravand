@@ -17,6 +17,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { t } from '@/lib/i18n';
 
 const passwordInput = useTemplateRef('passwordInput');
 </script>
@@ -25,23 +26,23 @@ const passwordInput = useTemplateRef('passwordInput');
     <div class="space-y-6">
         <Heading
             variant="small"
-            title="حذف حساب کاربری"
-            description="حساب کاربری و همه داده‌های وابسته به آن حذف می‌شود"
+            :title="t('profile.deleteTitle')"
+            :description="t('profile.deleteDescription')"
         />
         <div
             class="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10"
         >
             <div class="relative space-y-0.5 text-red-600 dark:text-red-100">
-                <p class="font-medium">هشدار</p>
+                <p class="font-medium">{{ t('profile.deleteWarning') }}</p>
                 <p class="text-sm">
-                    این عملیات بازگشت‌ناپذیر است؛ با دقت ادامه دهید.
+                    {{ t('profile.deleteWarningText') }}
                 </p>
             </div>
             <Dialog>
                 <DialogTrigger as-child>
-                    <Button variant="destructive" data-test="delete-user-button"
-                        >حذف حساب کاربری</Button
-                    >
+                    <Button variant="destructive" data-test="delete-user-button">
+                        {{ t('profile.deleteAction') }}
+                    </Button>
                 </DialogTrigger>
                 <DialogContent>
                     <Form
@@ -55,26 +56,23 @@ const passwordInput = useTemplateRef('passwordInput');
                         v-slot="{ errors, processing, reset, clearErrors }"
                     >
                         <DialogHeader class="space-y-3">
-                            <DialogTitle
-                                >از حذف حساب کاربری خود مطمئن
-                                هستید؟</DialogTitle
-                            >
+                            <DialogTitle>
+                                {{ t('profile.deleteConfirmTitle') }}
+                            </DialogTitle>
                             <DialogDescription>
-                                پس از حذف حساب، همه داده‌های مرتبط به‌صورت دائمی
-                                حذف می‌شود. برای تأیید حذف دائمی حساب، رمز عبور
-                                خود را وارد کنید.
+                                {{ t('profile.deleteConfirmText') }}
                             </DialogDescription>
                         </DialogHeader>
 
                         <div class="grid gap-2">
-                            <Label for="password" class="sr-only"
-                                >رمز عبور</Label
-                            >
+                            <Label for="password" class="sr-only">
+                                {{ t('auth.password') }}
+                            </Label>
                             <PasswordInput
                                 id="password"
                                 name="password"
                                 ref="passwordInput"
-                                placeholder="رمز عبور"
+                                :placeholder="t('auth.password')"
                             />
                             <InputError :message="errors.password" />
                         </div>
@@ -90,7 +88,7 @@ const passwordInput = useTemplateRef('passwordInput');
                                         }
                                     "
                                 >
-                                    انصراف
+                                    {{ t('common.cancel') }}
                                 </Button>
                             </DialogClose>
 
@@ -100,7 +98,7 @@ const passwordInput = useTemplateRef('passwordInput');
                                 :disabled="processing"
                                 data-test="confirm-delete-user-button"
                             >
-                                حذف حساب کاربری
+                                {{ t('profile.deleteAction') }}
                             </Button>
                         </DialogFooter>
                     </Form>

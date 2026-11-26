@@ -8,9 +8,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-/* @chisel-passkeys */
-import PasskeyVerify from '@/components/PasskeyVerify.vue';
-/* @end-chisel-passkeys */
 import { t } from '@/lib/i18n';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
@@ -18,13 +15,12 @@ import { request } from '@/routes/password';
 defineOptions({
     layout: {
         title: 'ورود به حساب کاربری',
-        description: 'ایمیل و رمز عبور خود را وارد کنید',
+        description: 'شماره موبایل و رمز عبور خود را وارد کنید',
     },
 });
 
 defineProps<{
     status?: string;
-    canResetPassword: boolean;
 }>();
 </script>
 
@@ -33,47 +29,39 @@ defineProps<{
 
     <div
         v-if="status"
-        class="mb-4 text-center text-sm font-medium text-green-600"
+        class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-medium text-emerald-800 dark:border-emerald-800/30 dark:bg-emerald-950/40 dark:text-emerald-200"
     >
         {{ status }}
     </div>
-
-    <!-- @chisel-passkeys -->
-    <PasskeyVerify
-        label="ورود با Passkey"
-        loading-label="در حال ورود…"
-        separator="یا با ایمیل ادامه دهید"
-    />
-    <!-- @end-chisel-passkeys -->
 
     <Form
         v-bind="store.form()"
         :reset-on-success="['password']"
         v-slot="{ errors, processing }"
-        class="flex flex-col gap-6"
+        class="flex flex-col gap-5"
     >
-        <div class="grid gap-6">
+        <div class="grid gap-5">
             <div class="grid gap-2">
-                <Label for="email">{{ t('auth.email') }}</Label>
+                <Label for="phone">{{ t('auth.phone') }}</Label>
                 <Input
-                    id="email"
-                    type="email"
-                    name="email"
+                    id="phone"
+                    type="tel"
+                    name="phone"
                     required
                     dir="ltr"
+                    inputmode="tel"
                     v-focus
                     :tabindex="1"
-                    autocomplete="email"
-                    placeholder="email@example.com"
+                    autocomplete="username"
+                    :placeholder="t('auth.phonePlaceholder')"
                 />
-                <InputError :message="errors.email" />
+                <InputError :message="errors.phone" />
             </div>
 
             <div class="grid gap-2">
                 <div class="flex items-center justify-between">
                     <Label for="password">{{ t('auth.password') }}</Label>
                     <TextLink
-                        v-if="canResetPassword"
                         :href="request()"
                         class="text-sm"
                         :tabindex="5"
@@ -101,7 +89,7 @@ defineProps<{
 
             <Button
                 type="submit"
-                class="mt-4 w-full"
+                class="mt-2 w-full"
                 :tabindex="4"
                 :disabled="processing"
                 data-test="login-button"

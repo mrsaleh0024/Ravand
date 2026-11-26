@@ -18,6 +18,13 @@ const jalaliDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
     numberingSystem: 'arabext',
 });
 
+/** Compact Jalali label for chart axes: month + day, no year. */
+const jalaliMonthDay = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+    day: 'numeric',
+    month: 'short',
+    numberingSystem: 'arabext',
+});
+
 /** ISO 8601 / UTC instant → «۱۴۰۴/۰۳/۰۲، ۱۸:۳۰» style Jalali string. */
 export function formatJalaliDateTime(iso: string | null | undefined): string {
     if (!iso) {
@@ -46,4 +53,19 @@ export function formatJalaliDate(iso: string | null | undefined): string {
     }
 
     return jalaliDate.format(date);
+}
+
+/** ISO 8601 / date-only string → compact Jalali «۲۵ آذر» (chart axes). */
+export function formatJalaliMonthDay(iso: string | null | undefined): string {
+    if (!iso) {
+        return '—';
+    }
+
+    const date = new Date(iso);
+
+    if (Number.isNaN(date.getTime())) {
+        return '—';
+    }
+
+    return jalaliMonthDay.format(date);
 }

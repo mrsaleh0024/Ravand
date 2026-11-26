@@ -97,12 +97,25 @@ return [
     'attributes' => [
         'name' => 'نام',
         'email' => 'ایمیل',
+        'phone' => 'شماره موبایل',
+        'code' => 'کد تایید',
         'password' => 'رمز عبور',
         'tenant_id' => 'شناسه فروشگاه',
         'default_currency' => 'ارز پیش‌فرض',
         'timezone' => 'منطقه زمانی',
         'locale' => 'زبان',
         'calendar' => 'تقویم',
+    ],
+
+    // Custom message keys used by Ravand (phone identity / Bale flows).
+    'custom' => [
+        'phone' => [
+            'phone_iranian' => 'شماره موبایل معتبر نیست. نمونه درست: 09121234567',
+            'unique' => 'این شماره موبایل قبلاً ثبت شده است.',
+        ],
+        'code' => [
+            'digits' => 'کد تایید باید ۶ رقم باشد.',
+        ],
     ],
 
 ];

@@ -78,11 +78,44 @@ return [
 
     'owner' => [
         'name' => env('RAVAND_OWNER_NAME'),
-        'email' => env('RAVAND_OWNER_EMAIL'),
+        'phone' => env('RAVAND_OWNER_PHONE'),
         'password' => env('RAVAND_OWNER_PASSWORD'),
         'tenant_name' => env('RAVAND_TENANT_NAME'),
         'tenant_slug' => env('RAVAND_TENANT_SLUG'),
         'currency' => env('RAVAND_TENANT_CURRENCY'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Bale bots (ADR-020)
+    |--------------------------------------------------------------------------
+    |
+    | Two bots, both writing ONLY to the owner's chat:
+    |   code  → owner login OTP codes (6 digits, 5-minute expiry).
+    |   admin → password-reset requests and member events mirror.
+    |
+    | Tokens come from BotFather in Bale. Discover the owner chat id with
+    | `php artisan ravand:bale:poll` (prints it for every /start) and store
+    | it on the Security page. On servers with a public URL, the same events
+    | can arrive through the webhook route instead.
+    |
+    */
+
+    'bale' => [
+        'code_bot_token' => env('BALE_CODE_BOT_TOKEN'),
+        'admin_bot_token' => env('BALE_ADMIN_BOT_TOKEN'),
+        'api_base' => env('BALE_API_BASE', 'https://tapi.bale.ai/bot'),
+        'webhook_secret' => env('BALE_WEBHOOK_SECRET'),
+        // Owner two-factor via Bale OTP; managers/operators never get OTP.
+        // filter_var so 'true'/'false'/'0'/'1' strings in .env all behave.
+        'owner_2fa' => filter_var(env('BALE_OWNER_2FA', true), FILTER_VALIDATE_BOOLEAN),
+        // Optional env fallback chat id (normally stored on the owner row).
+        'chat_id' => env('RAVAND_BALE_CHAT_ID'),
+        'otp' => [
+            'ttl' => 300,
+            'attempts' => 5,
+            'resend_cooldown' => 60,
+        ],
     ],
 
 ];

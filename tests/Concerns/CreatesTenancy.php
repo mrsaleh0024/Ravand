@@ -45,8 +45,10 @@ trait CreatesTenancy
     }
 
     /** Establish a session tenant context for the given tenant (simulates prior selection). */
-    protected function withCurrentTenant(User $user, Tenant $tenant): void
+    protected function withCurrentTenant(User $user, Tenant $tenant): static
     {
         $this->session(['current_tenant_id' => $tenant->id]);
+
+        return $this;
     }
 }

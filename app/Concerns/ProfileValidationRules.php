@@ -3,6 +3,7 @@
 namespace App\Concerns;
 
 use App\Models\User;
+use App\Support\Phone;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
@@ -10,7 +11,7 @@ use Illuminate\Validation\Rules\Unique;
 trait ProfileValidationRules
 {
     /**
-     * Get the validation rules used to validate user profiles.
+     * Get the validation rules used to validate user profiles (ADR-019).
      *
      * @return array<string, array<int, Unique|ValidationRule|array<mixed>|string>>
      */
@@ -18,7 +19,7 @@ trait ProfileValidationRules
     {
         return [
             'name' => $this->nameRules(),
-            'email' => $this->emailRules($userId),
+            'phone' => $this->phoneRules($userId),
         ];
     }
 
@@ -29,24 +30,29 @@ trait ProfileValidationRules
      */
     protected function nameRules(): array
     {
-        return ['required', 'string', 'max:255'];
+        return ['required', 'string', 'max:80'];
     }
 
     /**
-     * Get the validation rules used to validate user emails.
+     * Iranian mobile number rules: normalized to 09xxxxxxxxx before the
+     * unique check so every user shape maps to the stored value.
      *
      * @return array<int, Unique|ValidationRule|array<mixed>|string>
      */
-    protected function emailRules(?string $userId = null): array
+    protected function phoneRules(?string $userId = null): array
     {
         return [
             'required',
             'string',
-            'email',
-            'max:255',
+            'max:20',
+            function (string $attribute, mixed $value, \Closure $fail): void {
+                if (Phone::normalize(is_string($value) ? $value : null) === null) {
+                    $fail(__('validation.phone_iranian'));
+                }
+            },
             $userId === null
-                ? Rule::unique(User::class)
-                : Rule::unique(User::class)->ignore($userId),
+                ? Rule::unique(User::class, 'phone')
+                : Rule::unique(User::class, 'phone')->ignore($userId),
         ];
     }
 }
