@@ -232,6 +232,15 @@ const goToPage = (page: number) => {
                     <SelectItem value="telegram">
                         {{ t('customers.channel.telegram') }}
                     </SelectItem>
+                    <SelectItem value="eitaa">
+                        {{ t('customers.channel.eitaa') }}
+                    </SelectItem>
+                    <SelectItem value="bale">
+                        {{ t('customers.channel.bale') }}
+                    </SelectItem>
+                    <SelectItem value="rubika">
+                        {{ t('customers.channel.rubika') }}
+                    </SelectItem>
                     <SelectItem value="referral">
                         {{ t('customers.channel.referral') }}
                     </SelectItem>
@@ -508,6 +517,15 @@ const goToPage = (page: number) => {
                             </SelectItem>
                             <SelectItem value="telegram">
                                 {{ t('customers.channel.telegram') }}
+                            </SelectItem>
+                            <SelectItem value="eitaa">
+                                {{ t('customers.channel.eitaa') }}
+                            </SelectItem>
+                            <SelectItem value="bale">
+                                {{ t('customers.channel.bale') }}
+                            </SelectItem>
+                            <SelectItem value="rubika">
+                                {{ t('customers.channel.rubika') }}
                             </SelectItem>
                             <SelectItem value="referral">
                                 {{ t('customers.channel.referral') }}
