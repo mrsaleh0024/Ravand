@@ -261,10 +261,10 @@ const goToPage = (page: number) => {
                                 {{ t('customers.tags') }}
                             </TableHead>
                             <TableHead>{{ t('common.status') }}</TableHead>
-                            <TableHead>{{ t('common.actions') }}</TableHead>
                             <TableHead class="hidden sm:table-cell">
                                 {{ t('customers.createdAt') }}
                             </TableHead>
+                            <TableHead>{{ t('common.actions') }}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
