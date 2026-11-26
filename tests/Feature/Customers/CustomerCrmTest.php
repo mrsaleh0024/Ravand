@@ -30,6 +30,7 @@ class CustomerCrmTest extends TestCase
                     'display_name' => "مشتری {$platform}",
                     'social_platform' => $platform,
                     'social_handle' => "customer_{$index}",
+                    'acquisition_channel' => $platform,
                     'province' => 'تهران',
                     'city' => 'تهران',
                 ])
@@ -38,6 +39,11 @@ class CustomerCrmTest extends TestCase
             $customer = Customer::query()
                 ->where('display_name', "مشتری {$platform}")
                 ->firstOrFail();
+
+            $this->assertDatabaseHas('customers', [
+                'id' => $customer->id,
+                'acquisition_channel' => $platform,
+            ]);
 
             $this->assertDatabaseHas('customer_social_accounts', [
                 'customer_id' => $customer->id,
