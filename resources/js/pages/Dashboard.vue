@@ -8,7 +8,10 @@ import {
     Inbox,
     LogIn,
     LogOut,
+    Package,
     ShieldAlert,
+    TrendingUp,
+    UserPlus,
     Users,
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
@@ -22,17 +25,18 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import EventsFeed from '@/components/dashboard/EventsFeed.vue';
 import LoginChart from '@/components/dashboard/LoginChart.vue';
 import StatCard from '@/components/dashboard/StatCard.vue';
 import SystemHealthCard from '@/components/dashboard/SystemHealthCard.vue';
 import { t, tf } from '@/lib/i18n';
-import { formatJalaliDateTime } from '@/lib/format';
+import { formatAmount, formatJalaliDateTime } from '@/lib/format';
 import { dashboard } from '@/routes';
 import { index as membersIndex } from '@/routes/panel/members';
 import { index as requestsIndex } from '@/routes/panel/reset-requests';
-import { live } from '@/routes/panel';
-import type { LivePayload, TenantRole } from '@/types';
+import { kpis as kpisUrl, live } from '@/routes/panel';
+import type { KpiPayload, KpiWindow, LivePayload, TenantRole } from '@/types';
 
 const page = usePage();
 
@@ -53,6 +57,11 @@ const canViewLive = computed(() => role.value === 'owner' || role.value === 'man
 const data = ref<LivePayload | null>(null);
 const updatedAt = ref<string | null>(null);
 const loading = ref(false);
+
+// Business KPIs (phase 04): visible to every role, window-selectable.
+const kpiWindow = ref<KpiWindow>('30d');
+const kpiData = ref<KpiPayload | null>(null);
+const kpiLoading = ref(false);
 let timer: ReturnType<typeof setInterval> | null = null;
 
 const fetchLive = async () => {
@@ -76,12 +85,41 @@ const fetchLive = async () => {
     }
 };
 
+const fetchKpis = async () => {
+    if (document.hidden) {
+        return;
+    }
+
+    kpiLoading.value = true;
+
+    try {
+        const response = await fetch(kpisUrl.url({ query: { window: kpiWindow.value } }), {
+            headers: { Accept: 'application/json' },
+        });
+
+        if (response.ok) {
+            kpiData.value = (await response.json()) as KpiPayload;
+        }
+    } finally {
+        kpiLoading.value = false;
+    }
+};
+
+const changeKpiWindow = (value: KpiWindow) => {
+    kpiWindow.value = value;
+    void fetchKpis();
+};
+
 onMounted(() => {
     void fetchLive();
+    void fetchKpis();
 
     // Live dashboard: light JSON polling every 10 seconds (ADR-023). The
     // interval pauses while the tab is hidden to save resources.
-    timer = setInterval(() => void fetchLive(), 10000);
+    timer = setInterval(() => {
+        void fetchLive();
+        void fetchKpis();
+    }, 10000);
 });
 
 onBeforeUnmount(() => {
@@ -94,6 +132,10 @@ const stats = computed(() => data.value?.stats);
 const series = computed(() => data.value?.chart.series ?? []);
 const events = computed(() => data.value?.events ?? []);
 const system = computed(() => data.value?.system);
+const kpis = computed(() => kpiData.value?.kpis);
+const kpiCurrency = computed(() => kpiData.value?.currency_code ?? page.props.tenant?.default_currency ?? null);
+
+const kpiWindows: KpiWindow[] = ['7d', '30d', '90d'];
 
 const byRole = computed(() => {
     const map = stats.value?.by_role;
@@ -179,6 +221,109 @@ const byRole = computed(() => {
                 </CardHeader>
             </Card>
         </div>
+
+        <!-- Business KPIs (phase 04): every role, window-selectable. Each
+             card carries its definition as a native tooltip (spec: هر KPI
+             تعریف و بازه زمانی روشن داشته باشد). -->
+        <Card>
+            <CardHeader class="flex-row items-center justify-between space-y-0">
+                <div class="space-y-1">
+                    <CardTitle class="text-sm font-medium">
+                        {{ t('dashboard.kpi.title') }}
+                    </CardTitle>
+                    <CardDescription
+                        v-if="kpiData?.generated_at"
+                        class="text-xs"
+                    >
+                        {{ t('common.lastUpdate') }}:
+                        {{ formatJalaliDateTime(kpiData.generated_at) }}
+                    </CardDescription>
+                </div>
+                <div class="flex items-center gap-2">
+                    <Tabs
+                        :model-value="kpiWindow"
+                        @update:model-value="
+                            (value: string | number) =>
+                                changeKpiWindow(value as KpiWindow)
+                        "
+                    >
+                        <TabsList class="h-8">
+                            <TabsTrigger
+                                v-for="option in kpiWindows"
+                                :key="option"
+                                :value="option"
+                                class="px-2 py-0 text-xs"
+                            >
+                                {{ t(`dashboard.kpi.window.${option}`) }}
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                    <Activity
+                        class="size-4"
+                        :class="
+                            kpiLoading
+                                ? 'animate-pulse text-emerald-600'
+                                : 'text-muted-foreground'
+                        "
+                    />
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div
+                    class="grid auto-rows-min gap-4 sm:grid-cols-2 lg:grid-cols-5"
+                >
+                    <div :title="t('dashboard.kpi.customersTotalHint')">
+                        <StatCard
+                            :label="t('dashboard.kpi.customersTotal')"
+                            :value="kpis?.customers_total ?? '—'"
+                            :icon="Users"
+                        />
+                    </div>
+                    <div :title="t('dashboard.kpi.ordersCountHint')">
+                        <StatCard
+                            :label="t('dashboard.kpi.ordersCount')"
+                            :value="kpis?.orders_count ?? '—'"
+                            :icon="Package"
+                        />
+                    </div>
+                    <div :title="t('dashboard.kpi.completedSalesHint')">
+                        <StatCard
+                            :label="t('dashboard.kpi.completedSales')"
+                            :value="
+                                kpis
+                                    ? formatAmount(
+                                          kpis.completed_sales,
+                                          kpiCurrency,
+                                      )
+                                    : '—'
+                            "
+                            :icon="Coins"
+                        />
+                    </div>
+                    <div :title="t('dashboard.kpi.averageOrderValueHint')">
+                        <StatCard
+                            :label="t('dashboard.kpi.averageOrderValue')"
+                            :value="
+                                kpis?.average_order_value
+                                    ? formatAmount(
+                                          kpis.average_order_value,
+                                          kpiCurrency,
+                                      )
+                                    : '—'
+                            "
+                            :icon="TrendingUp"
+                        />
+                    </div>
+                    <div :title="t('dashboard.kpi.newCustomersHint')">
+                        <StatCard
+                            :label="t('dashboard.kpi.newCustomers')"
+                            :value="kpis?.new_customers ?? '—'"
+                            :icon="UserPlus"
+                        />
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
 
         <template v-if="canViewLive">
             <!-- Live stats -->
