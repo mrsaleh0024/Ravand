@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Tenancy\TenantContext;
 use App\Domain\Tenancy\TenantRole;
+use App\Models\Customer;
+use App\Models\Tag;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
@@ -14,6 +16,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Fortify\Fortify;
@@ -36,6 +39,34 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureGates();
         $this->configureAuditEvents();
+        $this->configureTenantScopedBindings();
+    }
+
+    /**
+     * Tenant-scoped route model binding for customer CRM routes (phase 02).
+     * A customer id from another tenant (or a request without a resolved
+     * tenant context) resolves to 404 — the id alone never grants access
+     * (spec 2.2).
+     */
+    protected function configureTenantScopedBindings(): void
+    {
+        Route::bind('customer', function (string $value) {
+            $context = app(TenantContext::class);
+
+            abort_unless($context->has(), 404);
+
+            return Customer::query()->findOrFail($value);
+        });
+
+        Route::bind('tag', function (string $value) {
+            $context = app(TenantContext::class);
+
+            abort_unless($context->has(), 404);
+
+            return Tag::query()
+                ->where('tenant_id', $context->tenant()->id)
+                ->findOrFail($value);
+        });
     }
 
     /**
@@ -106,6 +137,21 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('panel.reset-requests.manage', fn (User $user): bool => $isOwnerOrManager());
         // Bale settings (chat id, test message) — owner only.
         Gate::define('panel.bale.manage', fn (User $user): bool => $user->isOwner());
+
+        // --- Customer CRM (phase 02) ---
+        // Archiving/restoring a customer is an owner/manager decision;
+        // operators keep create/edit access (spec 8.2).
+        Gate::define('customers.archive', function (User $user): bool {
+            $role = app(TenantContext::class)->role();
+
+            return $role !== null && $role->canManageMembers();
+        });
+        // The tenant-wide tag vocabulary is maintained by owner/manager.
+        Gate::define('tags.manage', function (User $user): bool {
+            $role = app(TenantContext::class)->role();
+
+            return $role !== null && $role->canManageMembers();
+        });
     }
 
     /**

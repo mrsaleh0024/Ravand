@@ -2,6 +2,17 @@
 
 use App\Http\Controllers\Auth\ForgotPasswordRequestController;
 use App\Http\Controllers\Auth\OtpChallengeController;
+use App\Http\Controllers\Customers\CustomerAddressController;
+use App\Http\Controllers\Customers\CustomerConsentController;
+use App\Http\Controllers\Customers\CustomerContactController;
+use App\Http\Controllers\Customers\CustomerController;
+use App\Http\Controllers\Customers\CustomerInteractionController;
+use App\Http\Controllers\Customers\CustomerMeasurementController;
+use App\Http\Controllers\Customers\CustomerNoteController;
+use App\Http\Controllers\Customers\CustomerPreferenceController;
+use App\Http\Controllers\Customers\CustomerSocialAccountController;
+use App\Http\Controllers\Customers\CustomerTagController;
+use App\Http\Controllers\Customers\TagController;
 use App\Http\Controllers\Panel\LiveController;
 use App\Http\Controllers\Panel\MemberController;
 use App\Http\Controllers\Panel\ResetRequestController;
@@ -91,6 +102,88 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         Route::post('panel/reset-requests/{resetRequest}/reject', [ResetRequestController::class, 'reject'])
             ->middleware('can:panel.reset-requests.manage')
             ->name('panel.reset-requests.reject');
+
+        // --- Customers (phase 02, spec 5.2 / 6.5 / 7) ----------------------
+        // Every route is tenant-scoped: the {customer} binding resolves only
+        // within the current tenant (see AppServiceProvider), and the model
+        // itself carries a global tenant scope.
+
+        Route::get('customers', [CustomerController::class, 'index'])
+            ->name('customers.index');
+
+        Route::get('customers/duplicates', [CustomerController::class, 'duplicates'])
+            ->name('customers.duplicates');
+
+        Route::post('customers', [CustomerController::class, 'store'])
+            ->middleware('throttle:60,1')
+            ->name('customers.store');
+
+        Route::get('customers/{customer}', [CustomerController::class, 'show'])
+            ->name('customers.show');
+
+        Route::put('customers/{customer}', [CustomerController::class, 'update'])
+            ->name('customers.update');
+
+        Route::patch('customers/{customer}/archive', [CustomerController::class, 'archive'])
+            ->middleware('can:customers.archive')
+            ->name('customers.archive');
+
+        Route::patch('customers/{customer}/restore', [CustomerController::class, 'restore'])
+            ->middleware('can:customers.archive')
+            ->name('customers.restore');
+
+        // Contact channels
+        Route::post('customers/{customer}/contacts', [CustomerContactController::class, 'store'])
+            ->name('customer-contacts.store');
+        Route::delete('customers/{customer}/contacts/{contact}', [CustomerContactController::class, 'destroy'])
+            ->name('customer-contacts.destroy');
+
+        // Social accounts
+        Route::post('customers/{customer}/social-accounts', [CustomerSocialAccountController::class, 'store'])
+            ->name('customer-socials.store');
+        Route::delete('customers/{customer}/social-accounts/{socialAccount}', [CustomerSocialAccountController::class, 'destroy'])
+            ->name('customer-socials.destroy');
+
+        // Addresses
+        Route::post('customers/{customer}/addresses', [CustomerAddressController::class, 'store'])
+            ->name('customer-addresses.store');
+        Route::delete('customers/{customer}/addresses/{address}', [CustomerAddressController::class, 'destroy'])
+            ->name('customer-addresses.destroy');
+
+        // Notes
+        Route::post('customers/{customer}/notes', [CustomerNoteController::class, 'store'])
+            ->name('customer-notes.store');
+        Route::delete('customers/{customer}/notes/{note}', [CustomerNoteController::class, 'destroy'])
+            ->name('customer-notes.destroy');
+
+        // Interactions
+        Route::post('customers/{customer}/interactions', [CustomerInteractionController::class, 'store'])
+            ->name('customer-interactions.store');
+
+        // Consents
+        Route::post('customers/{customer}/consents', [CustomerConsentController::class, 'store'])
+            ->name('customer-consents.store');
+
+        // Preferences & measurements
+        Route::post('customers/{customer}/preferences', [CustomerPreferenceController::class, 'store'])
+            ->name('customer-preferences.store');
+        Route::delete('customers/{customer}/preferences/{preference}', [CustomerPreferenceController::class, 'destroy'])
+            ->name('customer-preferences.destroy');
+
+        Route::post('customers/{customer}/measurements', [CustomerMeasurementController::class, 'store'])
+            ->name('customer-measurements.store');
+        Route::delete('customers/{customer}/measurements/{measurement}', [CustomerMeasurementController::class, 'destroy'])
+            ->name('customer-measurements.destroy');
+
+        // Tags (shared tenant vocabulary)
+        Route::post('customers/{customer}/tags', [CustomerTagController::class, 'attach'])
+            ->name('customer-tags.attach');
+        Route::delete('customers/{customer}/tags/{tag}', [CustomerTagController::class, 'detach'])
+            ->name('customer-tags.detach');
+
+        Route::post('tags', [TagController::class, 'store'])
+            ->middleware('can:tags.manage')
+            ->name('tags.store');
     });
 });
 

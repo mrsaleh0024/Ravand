@@ -36,4 +36,11 @@ enum TenantRole: string
     {
         return in_array($this, [self::Owner, self::Manager], true);
     }
+
+    /** May perform staff-level decisions: archive customers, maintain the
+     *  tenant tag vocabulary (phase 02) — owner/manager, not operator. */
+    public function canManageMembers(): bool
+    {
+        return in_array($this, [self::Owner, self::Manager], true);
+    }
 }
