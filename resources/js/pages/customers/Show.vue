@@ -1176,6 +1176,9 @@ const socialLabel = (value: string) => t(`customers.social.platform.${value}`);
                             <SelectItem value="instagram">{{ t('customers.social.platform.instagram') }}</SelectItem>
                             <SelectItem value="telegram">{{ t('customers.social.platform.telegram') }}</SelectItem>
                             <SelectItem value="whatsapp">{{ t('customers.social.platform.whatsapp') }}</SelectItem>
+                            <SelectItem value="eitaa">{{ t('customers.social.platform.eitaa') }}</SelectItem>
+                            <SelectItem value="bale">{{ t('customers.social.platform.bale') }}</SelectItem>
+                            <SelectItem value="rubika">{{ t('customers.social.platform.rubika') }}</SelectItem>
                             <SelectItem value="other">{{ t('customers.social.platform.other') }}</SelectItem>
                         </SelectContent>
                     </Select>
