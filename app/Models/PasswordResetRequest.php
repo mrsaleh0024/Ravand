@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\HasUlid;
+use Database\Factories\PasswordResetRequestFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,11 +30,13 @@ use Illuminate\Support\Carbon;
 #[Fillable(['user_id', 'phone', 'status', 'requested_ip', 'handled_by', 'handled_at'])]
 class PasswordResetRequest extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\PasswordResetRequestFactory> */
+    /** @use HasFactory<PasswordResetRequestFactory> */
     use HasFactory, HasUlid;
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
 
     /** @return BelongsTo<User, $this> */

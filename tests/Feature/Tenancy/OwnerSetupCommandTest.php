@@ -32,7 +32,7 @@ class OwnerSetupCommandTest extends TestCase
 
         $this->assertSame('صاحب فروشگاه', $user->name);
         $this->assertSame('active', $user->status->value);
-                $this->assertSame('Asia/Tehran', $tenant->timezone);
+        $this->assertSame('Asia/Tehran', $tenant->timezone);
         $this->assertSame('IRT', $tenant->default_currency);
 
         $membership = TenantUser::query()->where('user_id', $user->id)->firstOrFail();

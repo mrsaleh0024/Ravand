@@ -7,7 +7,6 @@
  * /tmp/ravand-e2e/bale.log so the E2E script can extract OTP codes.
  * Run: php e2e_bale_mock.php 8899 /tmp/ravand-e2e/bale.log
  */
-
 $port = (int) ($argv[1] ?? 8899);
 $logFile = $argv[2] ?? '/tmp/ravand-e2e/bale.log';
 

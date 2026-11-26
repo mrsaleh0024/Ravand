@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Domain\Audit\AuditLogger;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\Auth\OtpChallengeService;
 use App\Support\Phone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Laravel\Fortify\Fortify;
 use Laravel\Fortify\LoginRateLimiter;
 
 /**
@@ -52,7 +54,7 @@ class OtpChallengeController extends Controller
         if ($user === null) {
             $this->limiter->increment($request);
 
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'code' => [trans('otp.invalid')],
             ]);
         }
@@ -65,7 +67,7 @@ class OtpChallengeController extends Controller
         $request->session()->regenerate();
         $this->limiter->clear($request);
 
-        app(\App\Domain\Audit\AuditLogger::class)->log(
+        app(AuditLogger::class)->log(
             action: 'auth.otp.verified',
             tenant: null,
             actor: $user,
@@ -95,7 +97,7 @@ class OtpChallengeController extends Controller
         return back()->with('status', trans('otp.resent'));
     }
 
-    private function pendingUser(Request $request): ?\App\Models\User
+    private function pendingUser(Request $request): ?User
     {
         $id = $request->session()->get('otp.pending_user_id');
 
@@ -103,6 +105,6 @@ class OtpChallengeController extends Controller
             return null;
         }
 
-        return \App\Models\User::query()->find($id);
+        return User::query()->find($id);
     }
 }

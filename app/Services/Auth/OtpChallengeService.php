@@ -3,8 +3,10 @@
 namespace App\Services\Auth;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Identity\UserStatus;
 use App\Models\User;
 use App\Services\Bale\BaleBot;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -18,7 +20,9 @@ use Illuminate\Support\Facades\Cache;
 final class OtpChallengeService
 {
     private const CACHE_CODE = 'otp:login:code:%s';
+
     private const CACHE_ATTEMPTS = 'otp:login:attempts:%s';
+
     private const CACHE_COOLDOWN = 'otp:login:cooldown:%s';
 
     public function __construct(private readonly AuditLogger $audit) {}
@@ -42,7 +46,7 @@ final class OtpChallengeService
      * pending user id into the session (session id is rotated first).
      * Returns false when sending via Bale failed.
      */
-    public function startChallenge(\Illuminate\Http\Request $request, User $user): bool
+    public function startChallenge(Request $request, User $user): bool
     {
         $code = (string) random_int(100000, 999999);
         $key = $user->getKey();
@@ -87,7 +91,7 @@ final class OtpChallengeService
     }
 
     /** Resend after the cooldown; returns false while cooling down or on send failure. */
-    public function resend(\Illuminate\Http\Request $request): bool
+    public function resend(Request $request): bool
     {
         $user = $this->pendingUser($request);
 
@@ -106,7 +110,7 @@ final class OtpChallengeService
      * Verify the typed code for the pending user. Returns the user on
      * success, null on any failure (wrong/expired code, too many attempts).
      */
-    public function verify(\Illuminate\Http\Request $request, string $code): ?User
+    public function verify(Request $request, string $code): ?User
     {
         $user = $this->pendingUser($request);
 
@@ -151,7 +155,7 @@ final class OtpChallengeService
     }
 
     /** Seconds until a re-send is allowed (0 = immediately). */
-    public function cooldownRemaining(\Illuminate\Http\Request $request): int
+    public function cooldownRemaining(Request $request): int
     {
         $user = $this->pendingUser($request);
 
@@ -169,12 +173,12 @@ final class OtpChallengeService
     }
 
     /** Clear any pending challenge state from the session. */
-    public function abort(\Illuminate\Http\Request $request): void
+    public function abort(Request $request): void
     {
         $request->session()->forget(['otp.pending_user_id', 'otp.remember']);
     }
 
-    private function pendingUser(\Illuminate\Http\Request $request): ?User
+    private function pendingUser(Request $request): ?User
     {
         $id = $request->session()->get('otp.pending_user_id');
 
@@ -184,7 +188,7 @@ final class OtpChallengeService
 
         $user = User::query()->find($id);
 
-        if ($user === null || $user->status !== \App\Domain\Identity\UserStatus::Active) {
+        if ($user === null || $user->status !== UserStatus::Active) {
             return null;
         }
 

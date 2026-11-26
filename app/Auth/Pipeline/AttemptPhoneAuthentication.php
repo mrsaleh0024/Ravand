@@ -2,8 +2,11 @@
 
 namespace App\Auth\Pipeline;
 
+use App\Domain\Audit\AuditLogger;
 use App\Domain\Identity\UserStatus;
+use App\Models\User;
 use App\Services\Auth\OtpChallengeService;
+use App\Services\Bale\BaleBot;
 use App\Support\Phone;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Contracts\Auth\StatefulGuard;
@@ -80,7 +83,7 @@ class AttemptPhoneAuthentication
             };
 
             if ($skipReason !== null) {
-                app(\App\Domain\Audit\AuditLogger::class)->log(
+                app(AuditLogger::class)->log(
                     action: 'auth.otp.skipped',
                     tenant: null,
                     actor: $user,
@@ -96,13 +99,13 @@ class AttemptPhoneAuthentication
         return $next($request);
     }
 
-    private function baleCodeBot(): \App\Services\Bale\BaleBot
+    private function baleCodeBot(): BaleBot
     {
-        return \App\Services\Bale\BaleBot::code();
+        return BaleBot::code();
     }
 
     /** Credential resolution: phone lookup + active status + hash check. */
-    private function resolveUser($request): ?\App\Models\User
+    private function resolveUser($request): ?User
     {
         $phone = Phone::normalize($request->input(Fortify::username()));
         $password = (string) $request->input('password');
@@ -111,7 +114,7 @@ class AttemptPhoneAuthentication
             return null;
         }
 
-        $user = \App\Models\User::query()->where('phone', $phone)->first();
+        $user = User::query()->where('phone', $phone)->first();
 
         if ($user === null || $user->status !== UserStatus::Active) {
             return null;

@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Settings;
 use App\Concerns\PasswordValidationRules;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
+use App\Models\User;
 use App\Services\Bale\BaleBot;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
-use Laravel\Fortify\Features;
 
 class SecurityController extends Controller
 {
@@ -21,10 +22,10 @@ class SecurityController extends Controller
      * owner's Bale 2FA block (ADR-020). Passkeys and TOTP were removed —
      * the owner's second factor is the Bale OTP.
      */
-    public function edit(\Illuminate\Http\Request $request): Response
+    public function edit(Request $request): Response
     {
         $user = $request->user();
-        assert($user instanceof \App\Models\User);
+        assert($user instanceof User);
 
         $props = [
             'passwordRules' => Password::defaults()->toPasswordRulesString(),

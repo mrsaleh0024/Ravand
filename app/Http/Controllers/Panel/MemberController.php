@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Panel;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Identity\UserStatus;
+use App\Domain\Tenancy\MembershipStatus;
 use App\Domain\Tenancy\TenantContext;
 use App\Domain\Tenancy\TenantRole;
 use App\Http\Controllers\Controller;
@@ -11,6 +13,8 @@ use App\Models\User;
 use App\Support\Phone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
@@ -85,15 +89,15 @@ class MemberController extends Controller
         $phone = Phone::normalize($validated['phone']);
         abort_if($phone === null, 422, __('validation.phone_iranian'));
 
-        $tempPassword = $validated['temp_password'] ?? \Illuminate\Support\Str::password(14, symbols: false);
+        $tempPassword = $validated['temp_password'] ?? Str::password(14, symbols: false);
 
         $tenant = $this->context->tenant();
 
-        [$user] = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $phone, $tempPassword, $role, $tenant, $request): array {
+        [$user] = DB::transaction(function () use ($validated, $phone, $tempPassword, $role, $tenant): array {
             $user = User::query()->create([
                 'name' => $validated['name'],
                 'phone' => $phone,
-                'status' => \App\Domain\Identity\UserStatus::Active->value,
+                'status' => UserStatus::Active->value,
                 'password' => $tempPassword,
                 'must_change_password' => true,
             ]);
@@ -133,13 +137,13 @@ class MemberController extends Controller
         abort_unless($member->role !== TenantRole::Owner, 403);
 
         $member->update([
-            'status' => $member->status === \App\Domain\Tenancy\MembershipStatus::Active
+            'status' => $member->status === MembershipStatus::Active
                 ? 'suspended'
                 : 'active',
         ]);
 
         $this->audit->log(
-            action: $member->status === \App\Domain\Tenancy\MembershipStatus::Active ? 'member.activated' : 'member.suspended',
+            action: $member->status === MembershipStatus::Active ? 'member.activated' : 'member.suspended',
             tenant: $this->context->tenant(),
             actor: $request->user(),
             entityType: 'tenant_user',
@@ -183,7 +187,7 @@ class MemberController extends Controller
             'temp_password' => ['nullable', 'string', Password::min(10)->letters()->numbers()],
         ]);
 
-        $tempPassword = $validated['temp_password'] ?? \Illuminate\Support\Str::password(14, symbols: false);
+        $tempPassword = $validated['temp_password'] ?? Str::password(14, symbols: false);
 
         /** @var User|null $target */
         $target = $member->user;
@@ -210,7 +214,7 @@ class MemberController extends Controller
 
     private function authorizeAbility(string $ability): void
     {
-        /** @var \App\Models\User|null $actor */
+        /** @var User|null $actor */
         $actor = auth()->user();
 
         abort_unless($actor !== null && $actor->can($ability), 403);

@@ -2,12 +2,12 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\AuditLog;
 use App\Models\PasswordResetRequest;
 use App\Models\Tenant;
 use App\Models\TenantUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Tests\Concerns\CreatesTenancy;
 use Tests\TestCase;
@@ -99,7 +99,7 @@ class BaleIntegrationTest extends TestCase
         // Admin bot configured but the network is down — reset request must
         // still be stored and the response must not be a server error.
         config(['ravand.bale.admin_bot_token' => 'tok']);
-        Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException('offline'));
+        Http::fake(fn () => throw new ConnectionException('offline'));
 
         $response = $this->post(route('password.request.store'), ['phone' => '09125550000']);
 

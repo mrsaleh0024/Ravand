@@ -33,7 +33,7 @@ class BalePollCommand extends Command
         $bot = new BaleBot($which);
 
         if (! $bot->configured()) {
-            $this->error("BALE_".strtoupper($which)."_BOT_TOKEN is not set in .env");
+            $this->error('BALE_'.strtoupper($which).'_BOT_TOKEN is not set in .env');
 
             return self::FAILURE;
         }
@@ -68,7 +68,7 @@ class BalePollCommand extends Command
             }
 
             foreach ($updates as $update) {
-                $offset = max($offset, (int) ($update['update_id'] ?? 0)) ;
+                $offset = max($offset, (int) ($update['update_id'] ?? 0));
                 $message = $update['message'] ?? null;
 
                 if (! is_array($message)) {

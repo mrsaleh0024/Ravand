@@ -4,6 +4,11 @@ namespace App\Http\Controllers\Panel;
 
 use App\Domain\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
+use App\Models\PasswordResetRequest;
+use App\Models\TenantUser;
+use App\Models\User;
+use App\Services\Bale\BaleBot;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +29,7 @@ class LiveController extends Controller
     public function __invoke(): JsonResponse
     {
         $user = request()->user();
-        assert($user instanceof \App\Models\User);
+        assert($user instanceof User);
 
         $isOwner = $this->context->role()?->value === 'owner';
         $tenant = $this->context->tenant();
@@ -49,7 +54,7 @@ class LiveController extends Controller
     /** @return array<string, mixed> */
     private function build(string $tenantId, bool $isOwner): array
     {
-        $events = \App\Models\AuditLog::query()
+        $events = AuditLog::query()
             ->where(function ($query) use ($tenantId): void {
                 $query->where('tenant_id', $tenantId)
                     ->orWhereNull('tenant_id')
@@ -59,7 +64,7 @@ class LiveController extends Controller
             ->latest('occurred_at')
             ->limit(30)
             ->get()
-            ->map(fn (\App\Models\AuditLog $entry): array => [
+            ->map(fn (AuditLog $entry): array => [
                 'id' => $entry->id,
                 'action' => $entry->action,
                 'occurred_at' => $entry->occurred_at?->toISOString(),
@@ -73,20 +78,20 @@ class LiveController extends Controller
             return [
                 'date' => $day->format('Y-m-d'),
                 'label' => $day->format('m/d'),
-                'logins' => \App\Models\AuditLog::query()
+                'logins' => AuditLog::query()
                     ->where('action', 'auth.login')
                     ->whereBetween('occurred_at', [$day, $day->copy()->endOfDay()])
                     ->count(),
-                'failed' => \App\Models\AuditLog::query()
+                'failed' => AuditLog::query()
                     ->where('action', 'auth.login_failed')
                     ->whereBetween('occurred_at', [$day, $day->copy()->endOfDay()])
                     ->count(),
             ];
         });
 
-        $members = \App\Models\TenantUser::query()
+        $members = TenantUser::query()
             ->where('tenant_id', $tenantId)
-            ->select('role', 'status', \Illuminate\Support\Facades\DB::raw('count(*) as total'))
+            ->select('role', 'status', DB::raw('count(*) as total'))
             ->groupBy('role', 'status')
             ->get();
 
@@ -97,7 +102,7 @@ class LiveController extends Controller
             'operator' => (int) ($members->where('role', 'operator')->where('status', 'active')->sum('total')),
         ];
 
-        $pendingResets = \App\Models\PasswordResetRequest::query()
+        $pendingResets = PasswordResetRequest::query()
             ->where('status', 'pending')
             ->count();
 
@@ -108,11 +113,11 @@ class LiveController extends Controller
                 'series' => $logins14d->values(),
             ],
             'stats' => [
-                'logins_today' => \App\Models\AuditLog::query()
+                'logins_today' => AuditLog::query()
                     ->where('action', 'auth.login')
                     ->where('occurred_at', '>=', now()->startOfDay())
                     ->count(),
-                'failed_today' => \App\Models\AuditLog::query()
+                'failed_today' => AuditLog::query()
                     ->where('action', 'auth.login_failed')
                     ->where('occurred_at', '>=', now()->startOfDay())
                     ->count(),
@@ -154,10 +159,10 @@ class LiveController extends Controller
             'cache_driver' => config('cache.default'),
             'queue_driver' => config('queue.default'),
             'session_driver' => config('session.driver'),
-            'bale_code_bot' => \App\Services\Bale\BaleBot::code()->configured(),
-            'bale_admin_bot' => \App\Services\Bale\BaleBot::admin()->configured(),
+            'bale_code_bot' => BaleBot::code()->configured(),
+            'bale_admin_bot' => BaleBot::admin()->configured(),
             'owner_2fa' => (bool) config('ravand.bale.owner_2fa'),
-            'failed_jobs' => \Illuminate\Support\Facades\DB::table('failed_jobs')->count(),
+            'failed_jobs' => DB::table('failed_jobs')->count(),
             'cache_ok' => Cache::add('panel:healthcheck', true, 30),
             'log_tail' => $logTail,
         ];

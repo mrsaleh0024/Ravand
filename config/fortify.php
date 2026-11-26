@@ -1,5 +1,9 @@
 <?php
 
+use App\Auth\Pipeline\AttemptPhoneAuthentication;
+use Laravel\Fortify\Actions\CanonicalizeUsername;
+use Laravel\Fortify\Actions\EnsureLoginIsNotThrottled;
+use Laravel\Fortify\Actions\PrepareAuthenticatedSession;
 use Laravel\Fortify\Features;
 
 return [
@@ -101,10 +105,10 @@ return [
 
     'pipelines' => [
         'login' => [
-            Laravel\Fortify\Actions\EnsureLoginIsNotThrottled::class,
-            Laravel\Fortify\Actions\CanonicalizeUsername::class,
-            App\Auth\Pipeline\AttemptPhoneAuthentication::class,
-            Laravel\Fortify\Actions\PrepareAuthenticatedSession::class,
+            EnsureLoginIsNotThrottled::class,
+            CanonicalizeUsername::class,
+            AttemptPhoneAuthentication::class,
+            PrepareAuthenticatedSession::class,
         ],
     ],
 

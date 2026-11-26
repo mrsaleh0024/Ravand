@@ -2,8 +2,6 @@
 
 namespace Tests\Feature\Panel;
 
-use App\Models\PasswordResetRequest;
-use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;

@@ -2,10 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\AuditLog;
 use App\Models\PasswordResetRequest;
-use App\Models\Tenant;
-use App\Models\TenantUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;

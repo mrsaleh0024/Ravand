@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Support\Phone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -66,9 +68,9 @@ class ResetRequestController extends Controller
             'temp_password' => ['nullable', 'string', Password::min(10)->letters()->numbers()],
         ]);
 
-        $tempPassword = $validated['temp_password'] ?? \Illuminate\Support\Str::password(14, symbols: false);
+        $tempPassword = $validated['temp_password'] ?? Str::password(14, symbols: false);
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($resetRequest, $target, $tempPassword, $request): void {
+        DB::transaction(function () use ($resetRequest, $target, $tempPassword, $request): void {
             $target->forceFill([
                 'password' => $tempPassword,
                 'must_change_password' => true,
