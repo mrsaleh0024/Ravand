@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { Boxes, Building2, LayoutGrid, Package, ScrollText, ShieldCheck, Users, UserSquare2 } from '@lucide/vue';
+import { Boxes, Building2, ChartColumn, LayoutGrid, Package, ScrollText, ShieldCheck, Users, UserSquare2, Gift } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
@@ -21,6 +21,8 @@ import { index as inventoryIndex } from '@/routes/inventory';
 import { index as ordersIndex } from '@/routes/orders';
 import { index as productsIndex } from '@/routes/products';
 import { index as customersIndex } from '@/routes/customers';
+import { index as reportsCustomers } from '@/routes/reports/customers';
+import { edit as loyaltySettingsEdit } from '@/routes/loyalty/settings';
 import { index as membersIndex } from '@/routes/panel/members';
 import { index as requestsIndex } from '@/routes/panel/reset-requests';
 import { index as auditIndex } from '@/routes/tenant/audit';
@@ -57,11 +59,21 @@ const mainNavItems = computed<NavItem[]>(() => {
             href: inventoryIndex(),
             icon: ScrollText,
         },
+        {
+            title: t('nav.reports'),
+            href: reportsCustomers(),
+            icon: ChartColumn,
+        },
     ];
 
     // Only real, working destinations are shown — never dead links (spec 6.4).
     if (role.value === 'owner' || role.value === 'manager') {
         items.push(
+            {
+                title: t('nav.loyalty'),
+                href: loyaltySettingsEdit(),
+                icon: Gift,
+            },
             {
                 title: t('nav.members'),
                 href: membersIndex(),

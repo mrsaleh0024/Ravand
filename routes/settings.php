@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Settings\AuditLogController;
 use App\Http\Controllers\Settings\BaleSettingsController;
+use App\Http\Controllers\Settings\LoyaltySettingsController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\TenantSettingsController;
@@ -51,5 +52,14 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         Route::get('settings/audit-log', [AuditLogController::class, 'index'])
             ->middleware('can:tenant.audit.view')
             ->name('tenant.audit.index');
+
+        // Loyalty club settings (phase 04) — owner/manager.
+        Route::get('settings/loyalty', [LoyaltySettingsController::class, 'edit'])
+            ->middleware('can:loyalty.manage')
+            ->name('loyalty.settings.edit');
+
+        Route::put('settings/loyalty', [LoyaltySettingsController::class, 'update'])
+            ->middleware('can:loyalty.manage')
+            ->name('loyalty.settings.update');
     });
 });

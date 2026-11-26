@@ -7,6 +7,7 @@ use App\Domain\Customers\CustomerFieldAllowlists as Fields;
 use App\Domain\Customers\CustomerNumberGenerator;
 use App\Domain\Customers\CustomerStatus;
 use App\Domain\Customers\DuplicateDetector;
+use App\Domain\Loyalty\LoyaltyService;
 use App\Domain\Tenancy\TenantContext;
 use App\Domain\Tenancy\TenantRole;
 use App\Http\Controllers\Controller;
@@ -39,6 +40,7 @@ class CustomerController extends Controller
         private readonly AuditLogger $audit,
         private readonly CustomerNumberGenerator $numbers,
         private readonly DuplicateDetector $duplicates,
+        private readonly LoyaltyService $loyalty,
     ) {}
 
     /** Customer list: server-side pagination, search and filters (spec 7.1). */
@@ -244,6 +246,20 @@ class CustomerController extends Controller
         $orders = $customer->orders()->with('items')->limit(10)->get();
         $ordersTotal = $customer->orders()->count();
 
+        // Loyalty tab (phase 04, spec section 10): balance/summary plus the
+        // latest ledger rows — all derived from the append-only ledger.
+        $loyaltySummary = $this->loyalty->summaryFor($customer);
+        $loyaltyHistory = $this->loyalty->historyFor($customer)->map(fn ($transaction): array => [
+            'id' => $transaction->id,
+            'type' => $transaction->transaction_type->value,
+            'points' => $transaction->points,
+            'amount_basis' => $transaction->amount_basis,
+            'reason' => $transaction->reason,
+            'order_number' => $transaction->order?->order_number,
+            'actor_name' => $transaction->creator?->name,
+            'created_at' => $transaction->created_at?->toISOString(),
+        ])->all();
+
         return Inertia::render('customers/Show', [
             'customer' => $this->profilePayload($customer, $isPrivileged),
             'notes' => $notes->map(fn (CustomerNote $note): array => [
@@ -266,6 +282,8 @@ class CustomerController extends Controller
                 ];
             })->all(),
             'ordersTotal' => $ordersTotal,
+            'loyalty' => $loyaltySummary + ['transactions' => $loyaltyHistory],
+            'canAdjustLoyalty' => $request->user()?->can('loyalty.manage') ?? false,
             'isPrivileged' => $isPrivileged,
             'tags' => $this->tagOptions(),
             'duplicates' => $request->session()->get('duplicates', []),

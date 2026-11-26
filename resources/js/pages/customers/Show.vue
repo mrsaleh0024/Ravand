@@ -55,11 +55,13 @@ import {
     detach as detachTag,
 } from '@/routes/customer-tags';
 import { store as createTag } from '@/routes/tags';
+import LoyaltyAdjustmentController from '@/actions/App/Http/Controllers/Loyalty/LoyaltyAdjustmentController';
 import type {
     CustomerInteractionItem,
     CustomerNoteItem,
     CustomerOrderItem,
     CustomerProfile,
+    LoyaltyProfile,
     TagItem,
 } from '@/types';
 
@@ -69,6 +71,8 @@ interface Props {
     interactions: CustomerInteractionItem[];
     orders: CustomerOrderItem[];
     ordersTotal: number;
+    loyalty: LoyaltyProfile;
+    canAdjustLoyalty: boolean;
     isPrivileged: boolean;
     tags: TagItem[];
 }
@@ -98,6 +102,7 @@ type DialogKind =
     | 'consent'
     | 'preference'
     | 'measurement'
+    | 'loyaltyAdjust'
     | null;
 
 const dialog = ref<DialogKind>(null);
@@ -111,6 +116,7 @@ const dialogMeta: Record<Exclude<DialogKind, null>, { title: string; description
     consent: { title: t('customers.consent.add'), description: '' },
     preference: { title: t('customers.preference.add'), description: '' },
     measurement: { title: t('customers.measurement.add'), description: '' },
+    loyaltyAdjust: { title: t('loyalty.adjustTitle'), description: t('loyalty.adjustHint') },
 };
 
 // Tag management
@@ -232,6 +238,9 @@ const socialLabel = (value: string) => t(`customers.social.platform.${value}`);
                 </TabsTrigger>
                 <TabsTrigger value="orders">
                     {{ t('orders.history') }}
+                </TabsTrigger>
+                <TabsTrigger value="loyalty">
+                    {{ t('loyalty.tab') }}
                 </TabsTrigger>
             </TabsList>
 
@@ -948,6 +957,141 @@ const socialLabel = (value: string) => t(`customers.social.platform.${value}`);
                     </CardContent>
                 </Card>
             </TabsContent>
+
+            <!-- ================= Loyalty: balance + ledger (phase 04) ========= -->
+            <TabsContent value="loyalty" class="space-y-4">
+                <p
+                    v-if="!loyalty.enabled"
+                    class="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground"
+                >
+                    {{ t('loyalty.disabledInProfile') }}
+                </p>
+
+                <!-- Balance + summary strip -->
+                <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    <Card>
+                        <CardContent class="p-4">
+                            <p class="text-xs text-muted-foreground">
+                                {{ t('loyalty.balance') }}
+                            </p>
+                            <p class="mt-1 text-2xl font-semibold tabular-nums">
+                                {{ loyalty.balance.toLocaleString('fa-IR') }}
+                                <span class="text-xs font-normal text-muted-foreground">
+                                    {{ t('loyalty.pointsUnit') }}
+                                </span>
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent class="p-4">
+                            <p class="text-xs text-muted-foreground">
+                                {{ t('loyalty.earned') }}
+                            </p>
+                            <p class="mt-1 text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                                +{{ loyalty.earned.toLocaleString('fa-IR') }}
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent class="p-4">
+                            <p class="text-xs text-muted-foreground">
+                                {{ t('loyalty.reversed') }}
+                            </p>
+                            <p class="mt-1 text-sm font-semibold tabular-nums text-red-700 dark:text-red-400">
+                                −{{ loyalty.reversed.toLocaleString('fa-IR') }}
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent class="p-4">
+                            <p class="text-xs text-muted-foreground">
+                                {{ t('loyalty.lastActivity') }}
+                            </p>
+                            <p class="mt-1 text-sm font-medium">
+                                {{ formatJalaliDateTime(loyalty.last_transaction_at) }}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <!-- Ledger history -->
+                <Card>
+                    <CardHeader class="flex-row items-center justify-between">
+                        <CardTitle class="text-base">
+                            {{ t('loyalty.history') }}
+                        </CardTitle>
+                        <Button
+                            v-if="canAdjustLoyalty"
+                            variant="outline"
+                            size="sm"
+                            @click="dialog = 'loyaltyAdjust'"
+                        >
+                            {{ t('loyalty.adjustSubmit') }}
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <ul v-if="loyalty.transactions.length" class="space-y-2">
+                            <li
+                                v-for="transaction in loyalty.transactions"
+                                :key="transaction.id"
+                                class="flex items-center justify-between gap-2 rounded-md border p-3 text-sm"
+                            >
+                                <div class="flex flex-col">
+                                    <div class="flex items-center gap-2">
+                                        <Badge
+                                            :variant="
+                                                transaction.type === 'earn'
+                                                    ? 'default'
+                                                    : transaction.type === 'reverse'
+                                                      ? 'destructive'
+                                                      : 'secondary'
+                                            "
+                                            class="text-xs"
+                                        >
+                                            {{ t(`loyalty.type.${transaction.type}`) }}
+                                        </Badge>
+                                        <span
+                                            v-if="transaction.order_number"
+                                            class="font-mono text-xs text-muted-foreground"
+                                            dir="ltr"
+                                        >
+                                            {{ t('loyalty.orderRef') }}:
+                                            {{ transaction.order_number }}
+                                        </span>
+                                    </div>
+                                    <span class="mt-1 text-xs text-muted-foreground">
+                                        {{ formatJalaliDateTime(transaction.created_at) }}
+                                        <template v-if="transaction.reason">
+                                            · {{ transaction.reason }}
+                                        </template>
+                                        <template v-if="transaction.actor_name">
+                                            · {{ transaction.actor_name }}
+                                        </template>
+                                    </span>
+                                </div>
+                                <span
+                                    class="font-semibold tabular-nums"
+                                    :class="
+                                        transaction.points >= 0
+                                            ? 'text-emerald-700 dark:text-emerald-400'
+                                            : 'text-red-700 dark:text-red-400'
+                                    "
+                                    dir="ltr"
+                                >
+                                    {{ transaction.points >= 0 ? '+' : '−' }}
+                                    {{ Math.abs(transaction.points).toLocaleString('fa-IR') }}
+                                </span>
+                            </li>
+                        </ul>
+                        <p
+                            v-else
+                            class="py-6 text-center text-sm text-muted-foreground"
+                        >
+                            {{ t('loyalty.historyEmpty') }}
+                        </p>
+                    </CardContent>
+                </Card>
+            </TabsContent>
         </Tabs>
     </div>
 
@@ -1330,6 +1474,44 @@ const socialLabel = (value: string) => t(`customers.social.platform.${value}`);
                     <Button type="submit" :disabled="processing">
                         <Spinner v-if="processing" />
                         {{ t('common.save') }}
+                    </Button>
+                </DialogFooter>
+            </Form>
+
+            <!-- Manual loyalty adjustment (phase 04, owner/manager only) -->
+            <Form
+                v-if="dialog === 'loyaltyAdjust'"
+                v-bind="LoyaltyAdjustmentController.form({ customer: customer.id })"
+                v-slot="{ errors, processing }"
+                class="grid gap-4"
+                @success="dialog = null"
+            >
+                <div class="grid gap-2">
+                    <Label for="loyalty_points">{{ t('loyalty.adjustPoints') }}</Label>
+                    <Input
+                        id="loyalty_points"
+                        name="points"
+                        type="number"
+                        dir="ltr"
+                        required
+                        placeholder="50 یا -50"
+                    />
+                    <InputError :message="errors.points" />
+                </div>
+                <div class="grid gap-2">
+                    <Label for="loyalty_reason">{{ t('loyalty.adjustReason') }}</Label>
+                    <Textarea
+                        id="loyalty_reason"
+                        name="reason"
+                        required
+                        :placeholder="t('loyalty.adjustHint')"
+                    />
+                    <InputError :message="errors.reason" />
+                </div>
+                <DialogFooter>
+                    <Button type="submit" :disabled="processing">
+                        <Spinner v-if="processing" />
+                        {{ t('loyalty.adjustSubmit') }}
                     </Button>
                 </DialogFooter>
             </Form>

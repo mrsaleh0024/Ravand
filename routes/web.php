@@ -17,9 +17,12 @@ use App\Http\Controllers\Customers\CustomerSocialAccountController;
 use App\Http\Controllers\Customers\CustomerTagController;
 use App\Http\Controllers\Customers\TagController;
 use App\Http\Controllers\Inventory\InventoryController;
+use App\Http\Controllers\Loyalty\LoyaltyAdjustmentController;
+use App\Http\Controllers\Panel\KpiController;
 use App\Http\Controllers\Panel\LiveController;
 use App\Http\Controllers\Panel\MemberController;
 use App\Http\Controllers\Panel\ResetRequestController;
+use App\Http\Controllers\Reports\CustomerReportController;
 use App\Http\Controllers\Sales\OrderController;
 use App\Http\Controllers\Sales\OrderPaymentController;
 use App\Http\Controllers\Settings\ForcePasswordChangeController;
@@ -74,6 +77,11 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         Route::get('panel/live', LiveController::class)
             ->middleware('can:panel.reset-requests.view')
             ->name('panel.live');
+
+        // Business KPIs (phase 04): derived on every request, no cache; all
+        // roles may read them — they carry no security data.
+        Route::get('panel/kpis', KpiController::class)
+            ->name('panel.kpis');
 
         // Member management.
         Route::get('panel/members', [MemberController::class, 'index'])
@@ -273,6 +281,18 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         Route::patch('orders/{order}/payments/{payment}/void', [OrderPaymentController::class, 'void'])
             ->middleware('can:payments.manage')
             ->name('order-payments.void');
+
+        // --- Loyalty, KPIs & customer report (phase 04) -----------------------
+        // Balances/history live in the customer profile (customers.show);
+        // manual adjustments are value-moving and gated to owner/manager.
+
+        Route::post('customers/{customer}/loyalty-adjustments', LoyaltyAdjustmentController::class)
+            ->middleware(['can:loyalty.manage', 'throttle:60,1'])
+            ->name('loyalty.adjustments.store');
+
+        // Customer report: last purchase / purchase count / total spent / tag.
+        Route::get('reports/customers', [CustomerReportController::class, 'index'])
+            ->name('reports.customers.index');
     });
 });
 
