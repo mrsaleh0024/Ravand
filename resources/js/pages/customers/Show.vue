@@ -1276,6 +1276,9 @@ const socialLabel = (value: string) => t(`customers.social.platform.${value}`);
                                 <SelectItem value="instagram">{{ t('customers.interaction.channel.instagram') }}</SelectItem>
                                 <SelectItem value="whatsapp">{{ t('customers.interaction.channel.whatsapp') }}</SelectItem>
                                 <SelectItem value="telegram">{{ t('customers.interaction.channel.telegram') }}</SelectItem>
+                                <SelectItem value="eitaa">{{ t('customers.interaction.channel.eitaa') }}</SelectItem>
+                                <SelectItem value="bale">{{ t('customers.interaction.channel.bale') }}</SelectItem>
+                                <SelectItem value="rubika">{{ t('customers.interaction.channel.rubika') }}</SelectItem>
                                 <SelectItem value="phone">{{ t('customers.interaction.channel.phone') }}</SelectItem>
                                 <SelectItem value="in_person">{{ t('customers.interaction.channel.in_person') }}</SelectItem>
                                 <SelectItem value="other">{{ t('customers.interaction.channel.other') }}</SelectItem>
