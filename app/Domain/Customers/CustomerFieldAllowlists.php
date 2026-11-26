@@ -15,7 +15,7 @@ final class CustomerFieldAllowlists
     public const GENDERS = ['female', 'male', 'other', 'not_specified'];
 
     public const ACQUISITION_CHANNELS = [
-        'instagram', 'whatsapp', 'telegram', 'referral',
+        'instagram', 'whatsapp', 'telegram', 'eitaa', 'bale', 'rubika', 'referral',
         'in_person', 'advertisement', 'other', 'unknown',
     ];
 
