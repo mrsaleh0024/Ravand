@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - phase/04-loyalty-dashboard
   pull_request:
 
 permissions:
