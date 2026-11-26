@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Form, Head, Link, router } from '@inertiajs/vue3';
 import { Plus, Search, UserRound } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
+import iranLocations from '@/data/iran-provinces-cities.json';
 import CustomerController from '@/actions/App/Http/Controllers/Customers/CustomerController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -103,15 +104,25 @@ const applyFilters = (patch: Record<string, string> = {}) => {
 // --- Create dialog (short form, spec 6.5) ---------------------------------
 
 const createOpen = ref(props.duplicates.length > 0);
-const draftForm = {
+const draftForm = reactive({
     display_name: props.draft.display_name ?? '',
     phone: props.draft.phone ?? '',
     social_platform: props.draft.social_platform ?? 'instagram',
     social_handle: props.draft.social_handle ?? '',
     acquisition_channel: props.draft.acquisition_channel ?? 'unknown',
+    province: props.draft.province ?? '',
     city: props.draft.city ?? '',
     note: props.draft.note ?? '',
-};
+});
+
+const provinces = iranLocations.provinces;
+const availableCities = computed(() =>
+    provinces.find((province) => province.name === draftForm.province)?.cities ?? [],
+);
+
+watch(() => draftForm.province, () => {
+    if (!availableCities.value.includes(draftForm.city)) draftForm.city = '';
+});
 
 const statusVariant = (value: string) =>
     (
@@ -250,13 +261,14 @@ const goToPage = (page: number) => {
                                 {{ t('customers.tags') }}
                             </TableHead>
                             <TableHead>{{ t('common.status') }}</TableHead>
+                            <TableHead>{{ t('common.actions') }}</TableHead>
                             <TableHead class="hidden sm:table-cell">
                                 {{ t('customers.createdAt') }}
                             </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableEmpty v-if="customers.data.length === 0" :colspan="8">
+                        <TableEmpty v-if="customers.data.length === 0" :colspan="9">
                             <div class="flex flex-col items-center gap-2 py-6 text-muted-foreground">
                                 <UserRound class="size-8" />
                                 <span>{{ t('customers.empty') }}</span>
@@ -304,6 +316,13 @@ const goToPage = (page: number) => {
                             </TableCell>
                             <TableCell class="hidden text-xs text-muted-foreground sm:table-cell">
                                 {{ formatJalaliDate(customer.created_at) }}
+                            </TableCell>
+                            <TableCell>
+                                <Button as-child variant="outline" size="sm">
+                                    <Link :href="customersShow({ customer: customer.id })">
+                                        {{ t('customers.openProfile') }}
+                                    </Link>
+                                </Button>
                             </TableCell>
                         </TableRow>
                     </TableBody>
@@ -398,7 +417,7 @@ const goToPage = (page: number) => {
                         id="display_name"
                         name="display_name"
                         required
-                        :value="draftForm.display_name"
+                        v-model="draftForm.display_name"
                         :placeholder="t('customers.displayNamePlaceholder')"
                     />
                     <InputError :message="errors.display_name" />
@@ -411,7 +430,7 @@ const goToPage = (page: number) => {
                         name="phone"
                         dir="ltr"
                         inputmode="tel"
-                        :value="draftForm.phone"
+                        v-model="draftForm.phone"
                         placeholder="۰۹۱۲…"
                     />
                     <InputError :message="errors.phone" />
@@ -421,7 +440,7 @@ const goToPage = (page: number) => {
                     <div class="grid content-end gap-2">
                         <Select
                             name="social_platform"
-                            :default-value="draftForm.social_platform || 'instagram'"
+                            v-model="draftForm.social_platform"
                         >
                             <SelectTrigger>
                                 <SelectValue />
@@ -435,6 +454,15 @@ const goToPage = (page: number) => {
                                 </SelectItem>
                                 <SelectItem value="whatsapp">
                                     {{ t('customers.social.platform.whatsapp') }}
+                                </SelectItem>
+                                <SelectItem value="eitaa">
+                                    {{ t('customers.social.platform.eitaa') }}
+                                </SelectItem>
+                                <SelectItem value="bale">
+                                    {{ t('customers.social.platform.bale') }}
+                                </SelectItem>
+                                <SelectItem value="rubika">
+                                    {{ t('customers.social.platform.rubika') }}
                                 </SelectItem>
                                 <SelectItem value="other">
                                     {{ t('customers.social.platform.other') }}
@@ -450,7 +478,7 @@ const goToPage = (page: number) => {
                             id="social_handle"
                             name="social_handle"
                             dir="ltr"
-                            :value="draftForm.social_handle"
+                            v-model="draftForm.social_handle"
                             placeholder="@username"
                         />
                         <InputError :message="errors.social_handle" />
@@ -463,7 +491,7 @@ const goToPage = (page: number) => {
                     </Label>
                     <Select
                         name="acquisition_channel"
-                        :default-value="draftForm.acquisition_channel || 'unknown'"
+                        v-model="draftForm.acquisition_channel"
                     >
                         <SelectTrigger>
                             <SelectValue />
@@ -497,14 +525,29 @@ const goToPage = (page: number) => {
                     </Select>
                 </div>
 
-                <div class="grid gap-2">
-                    <Label for="city">{{ t('customers.createCity') }}</Label>
-                    <Input id="city" name="city" :value="draftForm.city" />
-                </div>
+                <details class="rounded-md border p-3" open>
+                    <summary class="cursor-pointer font-medium">{{ t('customers.createProvince') }} / {{ t('customers.createCity') }}</summary>
+                    <div class="mt-3 grid gap-3">
+                        <div class="grid gap-2">
+                            <Label for="province">{{ t('customers.createProvince') }}</Label>
+                            <select id="province" v-model="draftForm.province" name="province" class="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                                <option value="">{{ t('customers.selectProvince') }}</option>
+                                <option v-for="province in provinces" :key="province.id" :value="province.name">{{ province.name }}</option>
+                            </select>
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="city">{{ t('customers.createCity') }}</Label>
+                            <select id="city" v-model="draftForm.city" name="city" :disabled="!draftForm.province" class="h-10 w-full rounded-md border bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50">
+                                <option value="">{{ t('customers.selectCity') }}</option>
+                                <option v-for="city in availableCities" :key="city" :value="city">{{ city }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </details>
 
                 <div class="grid gap-2">
                     <Label for="note">{{ t('customers.createNote') }}</Label>
-                    <Input id="note" name="note" :value="draftForm.note" />
+                    <Input id="note" name="note" v-model="draftForm.note" />
                 </div>
 
                 <DialogFooter class="gap-2">
