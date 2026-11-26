@@ -128,6 +128,12 @@ class Customer extends Model
         return $this->hasMany(CustomerInteraction::class)->latest('occurred_at');
     }
 
+    /** Purchase history (phase 03): shown as a tab in the 360° profile. */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class)->latest('placed_at');
+    }
+
     /**
      * @return BelongsToMany<Tag, $this>
      */
