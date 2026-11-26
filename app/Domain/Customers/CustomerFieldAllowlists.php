@@ -49,7 +49,7 @@ final class CustomerFieldAllowlists
         'question', 'purchase_related', 'other',
     ];
 
-    public const INTERACTION_CHANNELS = ['instagram', 'whatsapp', 'telegram', 'phone', 'in_person', 'other'];
+    public const INTERACTION_CHANNELS = ['instagram', 'whatsapp', 'telegram', 'eitaa', 'bale', 'rubika', 'phone', 'in_person', 'other'];
 
     public const INTERACTION_OUTCOMES = [
         'purchase', 'no_purchase', 'waiting', 'resolved', 'unresolved', 'other',
