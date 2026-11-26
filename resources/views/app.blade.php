@@ -34,6 +34,11 @@
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
+        {{-- Preload the two most-used font weights so the first paint has
+             real glyphs without a second round-trip (ADR-016). --}}
+        <link rel="preload" href="/fonts/vazirmatn/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="/fonts/vazirmatn/Vazirmatn-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
+
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
         <x-inertia::head>
             <title>{{ config('app.name', 'Ravand') }}</title>
