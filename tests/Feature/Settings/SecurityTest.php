@@ -3,91 +3,98 @@
 namespace Tests\Feature\Settings;
 
 use App\Models\User;
+use App\Services\Bale\BaleBot;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
-use Laravel\Fortify\Features;
+use Tests\Concerns\CreatesTenancy;
 use Tests\TestCase;
 
 class SecurityTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesTenancy, RefreshDatabase;
 
-    public function test_security_page_is_displayed()
+    public function test_security_page_is_displayed_with_bale_block_for_owner()
     {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
+        [$owner] = $this->createOwner();
 
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-        ]);
-        /* @chisel-passkeys */
-        Features::passkeys([
-            'confirmPassword' => true,
-        ]);
-        /* @end-chisel-passkeys */
-
-        $user = User::factory()->create();
-
-        $this->actingAs($user)
-            /* @chisel-password-confirmation */
+        $this->actingAs($owner)
             ->withSession(['auth.password_confirmed_at' => time()])
-            /* @end-chisel-password-confirmation */
             ->get(route('security.edit'))
             ->assertInertia(fn (Assert $page) => $page
                 ->component('settings/Security')
-                /* @chisel-passkeys */
-                ->where('canManagePasskeys', true)
-                ->where('passkeys', [])
-                /* @end-chisel-passkeys */
-                ->where('canManageTwoFactor', true)
-                ->where('twoFactorEnabled', false),
+                ->where('bale.isOwner', true)
+                ->where('bale.chatId', null)
+                ->where('bale.enabled', config('ravand.bale.owner_2fa')),
             );
     }
 
-    /* @chisel-password-confirmation */
-    public function test_security_page_requires_password_confirmation_when_enabled()
+    public function test_security_page_shows_bale_block_as_non_owner_for_regular_user()
     {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
-        $user = User::factory()->create();
-
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-        ]);
-
-        $response = $this->actingAs($user)
-            ->get(route('security.edit'));
-
-        $response->assertRedirect(route('password.confirm'));
-    }
-    /* @end-chisel-password-confirmation */
-
-    public function test_security_page_renders_without_two_factor_when_feature_is_disabled()
-    {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
-        config(['fortify.features' => []]);
-
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            /* @chisel-password-confirmation */
             ->withSession(['auth.password_confirmed_at' => time()])
-            /* @end-chisel-password-confirmation */
             ->get(route('security.edit'))
-            ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('settings/Security')
-                /* @chisel-passkeys */
-                ->where('canManagePasskeys', false)
-                ->where('passkeys', [])
-                /* @end-chisel-passkeys */
-                ->where('canManageTwoFactor', false)
-                ->missing('twoFactorEnabled')
-                ->missing('requiresConfirmation'),
+                ->where('bale.isOwner', false),
             );
+    }
+
+    public function test_owner_can_link_bale_chat_id()
+    {
+        config([
+            'ravand.bale.code_bot_token' => 'test-code-token',
+            'ravand.bale.admin_bot_token' => 'test-admin-token',
+        ]);
+
+        [$owner] = $this->createOwner();
+
+        $this->actingAs($owner)
+            ->from(route('security.edit'))
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->put(route('settings.bale.update'), ['bale_chat_id' => '987654321'])
+            ->assertRedirect(route('security.edit'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('987654321', $owner->refresh()->bale_chat_id);
+    }
+
+    public function test_non_owner_cannot_link_bale_chat_id()
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->put(route('settings.bale.update'), ['bale_chat_id' => '987654321'])
+            ->assertForbidden();
+
+        $this->assertNull($user->refresh()->bale_chat_id);
+    }
+
+    public function test_bale_test_message_is_sent_to_linked_chat()
+    {
+        config([
+            'ravand.bale.code_bot_token' => 'test-code-token',
+            'ravand.bale.api_base' => 'https://tapi.bale.ai/bot',
+        ]);
+
+        Http::fake();
+
+        [$owner] = $this->createOwner();
+        $owner->forceFill(['bale_chat_id' => '123456789'])->save();
+
+        $this->actingAs($owner)
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->post(route('settings.bale.test'), ['bot' => 'code'])
+            ->assertRedirect();
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'tapi.bale.ai')
+                && str_contains($request->url(), 'test-code-token')
+                && $request['chat_id'] === '123456789';
+        });
     }
 
     public function test_password_can_be_updated()
@@ -97,6 +104,7 @@ class SecurityTest extends TestCase
         $response = $this
             ->actingAs($user)
             ->from(route('security.edit'))
+            ->withSession(['auth.password_confirmed_at' => time()])
             ->put(route('user-password.update'), [
                 'current_password' => 'password',
                 'password' => 'new-password',
@@ -107,7 +115,7 @@ class SecurityTest extends TestCase
             ->assertSessionHasNoErrors()
             ->assertRedirect(route('security.edit'));
 
-        $this->assertTrue(Hash::check('new-password', $user->refresh()->password));
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('new-password', $user->refresh()->password));
     }
 
     public function test_correct_password_must_be_provided_to_update_password()
@@ -117,6 +125,7 @@ class SecurityTest extends TestCase
         $response = $this
             ->actingAs($user)
             ->from(route('security.edit'))
+            ->withSession(['auth.password_confirmed_at' => time()])
             ->put(route('user-password.update'), [
                 'current_password' => 'wrong-password',
                 'password' => 'new-password',

@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Concerns\PasswordValidationRules;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
-use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
+use App\Services\Bale\BaleBot;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
@@ -13,45 +14,29 @@ use Laravel\Fortify\Features;
 
 class SecurityController extends Controller
 {
+    use PasswordValidationRules;
+
     /**
-     * Show the user's security settings page.
+     * Show the user's security settings page: password change plus the
+     * owner's Bale 2FA block (ADR-020). Passkeys and TOTP were removed —
+     * the owner's second factor is the Bale OTP.
      */
-    public function edit(TwoFactorAuthenticationRequest $request): Response
+    public function edit(\Illuminate\Http\Request $request): Response
     {
+        $user = $request->user();
+        assert($user instanceof \App\Models\User);
+
         $props = [
-            /* @chisel-2fa */
-            'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
-            /* @end-chisel-2fa */
-            /* @chisel-passkeys */
-            'canManagePasskeys' => Features::canManagePasskeys(),
-            'passkeys' => Features::canManagePasskeys()
-                ? $request->user()
-                    ->passkeys()
-                    ->select(['id', 'name', 'credential', 'created_at', 'last_used_at'])
-                    ->latest()
-                    ->get()
-                    ->map(fn ($passkey) => [
-                        'id' => $passkey->id,
-                        'name' => $passkey->name,
-                        'authenticator' => $passkey->authenticator,
-                        'created_at_diff' => $passkey->created_at->diffForHumans(),
-                        'last_used_at_diff' => $passkey->last_used_at?->diffForHumans(),
-                    ])
-                    ->values()
-                    ->all()
-                : [],
-            /* @end-chisel-passkeys */
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
+            // Bale 2FA block (owner-only UI).
+            'bale' => [
+                'isOwner' => $user->isOwner(),
+                'chatId' => $user->bale_chat_id,
+                'codeBot' => BaleBot::code()->configured(),
+                'adminBot' => BaleBot::admin()->configured(),
+                'enabled' => config('ravand.bale.owner_2fa'),
+            ],
         ];
-
-        /* @chisel-2fa */
-        if (Features::canManageTwoFactorAuthentication()) {
-            $request->ensureStateIsValid();
-
-            $props['twoFactorEnabled'] = $request->user()->hasEnabledTwoFactorAuthentication();
-            $props['requiresConfirmation'] = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
-        }
-        /* @end-chisel-2fa */
 
         return Inertia::render('settings/Security', $props);
     }
@@ -65,7 +50,7 @@ class SecurityController extends Controller
             'password' => $request->password,
         ]);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Password updated.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('otp.password_updated')]);
 
         return back();
     }
