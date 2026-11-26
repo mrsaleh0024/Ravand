@@ -69,3 +69,39 @@ export function formatJalaliMonthDay(iso: string | null | undefined): string {
 
     return jalaliMonthDay.format(date);
 }
+
+/**
+ * Integer amount (DECIMAL(20,0) string or number) → Persian-digit label
+ * with the currency unit (phase 03, spec 4.4). Amounts stay strings on
+ * the wire; formatting only happens here at display time.
+ */
+export function formatAmount(amount: string | number | null | undefined, currencyCode?: string | null): string {
+    if (amount === null || amount === undefined || amount === '') {
+        return '—';
+    }
+
+    const digits = String(amount).replace(/[^0-9-]/g, '');
+
+    if (digits === '' || digits === '-') {
+        return '—';
+    }
+
+    const sign = digits.startsWith('-') ? '−' : '';
+    const abs = digits.replace('-', '');
+    const grouped = abs.replace(/\B(?=(\d{3})+(?!\d))/g, '،');
+    const unit = currencyCode === 'IRT' ? 'تومان' : currencyCode === 'IRR' ? 'ریال' : '';
+
+    return `${sign}${toPersianDigits(grouped)}${unit ? ` ${unit}` : ''}`;
+}
+
+/** ASCII digits → Persian digits (display only; never in inputs). */
+export function toPersianDigits(value: string): string {
+    return value.replace(/[0-9]/g, (digit) => String.fromCharCode(digit.charCodeAt(0) + 0x06f0));
+}
+
+/** Persian/Arabic digits → ASCII digits (user input → server format). */
+export function toAsciiDigits(value: string): string {
+    return value
+        .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 0x06f0))
+        .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 0x0630));
+}

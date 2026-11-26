@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { Building2, LayoutGrid, ScrollText, ShieldCheck, Users, UserSquare2 } from '@lucide/vue';
+import { Boxes, Building2, LayoutGrid, Package, ScrollText, ShieldCheck, Users, UserSquare2 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
@@ -17,6 +17,9 @@ import {
 } from '@/components/ui/sidebar';
 import { t } from '@/lib/i18n';
 import { dashboard } from '@/routes';
+import { index as inventoryIndex } from '@/routes/inventory';
+import { index as ordersIndex } from '@/routes/orders';
+import { index as productsIndex } from '@/routes/products';
 import { index as customersIndex } from '@/routes/customers';
 import { index as membersIndex } from '@/routes/panel/members';
 import { index as requestsIndex } from '@/routes/panel/reset-requests';
@@ -38,6 +41,21 @@ const mainNavItems = computed<NavItem[]>(() => {
             title: t('nav.customers'),
             href: customersIndex(),
             icon: UserSquare2,
+        },
+        {
+            title: t('nav.orders'),
+            href: ordersIndex(),
+            icon: Package,
+        },
+        {
+            title: t('nav.catalog'),
+            href: productsIndex(),
+            icon: Boxes,
+        },
+        {
+            title: t('nav.inventory'),
+            href: inventoryIndex(),
+            icon: ScrollText,
         },
     ];
 

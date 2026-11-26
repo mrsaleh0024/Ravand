@@ -46,7 +46,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
-import { formatJalaliDate, formatJalaliDateTime } from '@/lib/format';
+import { formatAmount, formatJalaliDate, formatJalaliDateTime } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import { archive, restore, show as customersShow } from '@/routes/customers';
 import { index as customersIndex } from '@/routes/customers';
@@ -58,6 +58,7 @@ import { store as createTag } from '@/routes/tags';
 import type {
     CustomerInteractionItem,
     CustomerNoteItem,
+    CustomerOrderItem,
     CustomerProfile,
     TagItem,
 } from '@/types';
@@ -66,6 +67,8 @@ interface Props {
     customer: CustomerProfile;
     notes: CustomerNoteItem[];
     interactions: CustomerInteractionItem[];
+    orders: CustomerOrderItem[];
+    ordersTotal: number;
     isPrivileged: boolean;
     tags: TagItem[];
 }
@@ -226,6 +229,9 @@ const socialLabel = (value: string) => t(`customers.social.platform.${value}`);
                 <TabsTrigger value="notes">{{ t('customers.tab.notes') }}</TabsTrigger>
                 <TabsTrigger value="interactions">
                     {{ t('customers.tab.interactions') }}
+                </TabsTrigger>
+                <TabsTrigger value="orders">
+                    {{ t('orders.history') }}
                 </TabsTrigger>
             </TabsList>
 
@@ -872,6 +878,73 @@ const socialLabel = (value: string) => t(`customers.social.platform.${value}`);
                         <p v-else class="text-sm text-muted-foreground">
                             {{ t('customers.interaction.empty') }}
                         </p>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            <!-- ================= Orders (phase 03) ================= -->
+            <TabsContent value="orders" class="space-y-4">
+                <Card>
+                    <CardHeader class="flex-row items-center justify-between">
+                        <CardTitle class="text-base">
+                            {{ t('orders.history') }}
+                            <span class="text-sm font-normal text-muted-foreground">
+                                ({{ ordersTotal.toLocaleString('fa-IR') }})
+                            </span>
+                        </CardTitle>
+                        <Button as-child variant="outline" size="sm">
+                            <Link :href="`/orders/create?customer=${customer.id}`">
+                                {{ t('orders.create') }}
+                            </Link>
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <ul v-if="orders.length" class="space-y-2">
+                            <li
+                                v-for="order in orders"
+                                :key="order.id"
+                                class="flex items-center justify-between gap-2 rounded-md border p-3 text-sm"
+                            >
+                                <div class="flex flex-col">
+                                    <Link
+                                        :href="`/orders/${order.id}`"
+                                        class="font-mono font-medium hover:underline"
+                                        dir="ltr"
+                                    >
+                                        {{ order.order_number }}
+                                    </Link>
+                                    <span class="text-xs text-muted-foreground">
+                                        {{ formatJalaliDateTime(order.placed_at) }} ·
+                                        {{ order.items_count.toLocaleString('fa-IR') }} {{ t('orders.itemsCount') }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium" dir="ltr">
+                                        {{ formatAmount(order.total_amount, order.currency_code) }}
+                                    </span>
+                                    <Badge
+                                        :variant="
+                                            ['cancelled', 'returned'].includes(order.status)
+                                                ? 'destructive'
+                                                : order.status === 'draft'
+                                                  ? 'secondary'
+                                                  : 'default'
+                                        "
+                                        class="text-xs"
+                                    >
+                                        {{ t(`orders.status.${order.status}`) }}
+                                    </Badge>
+                                </div>
+                            </li>
+                        </ul>
+                        <div v-else class="flex flex-col items-center gap-2 py-6 text-muted-foreground">
+                            <span class="text-sm">{{ t('orders.historyEmpty') }}</span>
+                            <Button as-child variant="outline" size="sm">
+                                <Link :href="`/orders/create?customer=${customer.id}`">
+                                    {{ t('orders.create') }}
+                                </Link>
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             </TabsContent>
