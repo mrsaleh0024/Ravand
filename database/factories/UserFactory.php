@@ -17,6 +17,8 @@ class UserFactory extends Factory
      */
     protected static ?string $password;
 
+    protected static int $phoneSequence = 0;
+
     /**
      * Define the model's default state.
      *
@@ -26,28 +28,18 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'phone' => null,
+            'phone' => static::nextPhone(),
             'status' => 'active',
-            'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'must_change_password' => false,
             'remember_token' => Str::random(10),
-            /* @chisel-2fa */
-            'two_factor_secret' => null,
-            'two_factor_recovery_codes' => null,
-            'two_factor_confirmed_at' => null,
-            /* @end-chisel-2fa */
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
+    /** Deterministic unique Iranian mobile numbers across factory calls. */
+    public static function nextPhone(): string
     {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
-        ]);
+        return '0912'.str_pad((string) (3000000 + (++static::$phoneSequence)), 7, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -60,17 +52,24 @@ class UserFactory extends Factory
         ]);
     }
 
-    /* @chisel-2fa */
     /**
-     * Indicate that the model has two-factor authentication configured.
+     * Indicate that the account must choose a new password on next login
+     * (used after a temporary password was issued by the panel).
      */
-    public function withTwoFactor(): static
+    public function mustChangePassword(): static
     {
         return $this->state(fn (array $attributes) => [
-            'two_factor_secret' => encrypt('secret'),
-            'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
-            'two_factor_confirmed_at' => now(),
+            'must_change_password' => true,
         ]);
     }
-    /* @end-chisel-2fa */
+
+    /**
+     * Indicate that the owner account has a Bale chat id for OTP 2FA.
+     */
+    public function withBaleChat(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'bale_chat_id' => '123456789',
+        ]);
+    }
 }

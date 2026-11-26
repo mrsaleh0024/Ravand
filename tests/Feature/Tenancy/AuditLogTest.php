@@ -23,14 +23,14 @@ class AuditLogTest extends TestCase
         $user = User::factory()->create();
 
         $this->post(route('login'), [
-            'email' => $user->email,
+            'phone' => $user->phone,
             'password' => 'wrong-password',
         ]);
 
         $row = AuditLog::query()->where('action', 'auth.login_failed')->first();
 
         $this->assertNotNull($row);
-        $this->assertSame($user->email, $row->metadata['attempted_identifier']);
+        $this->assertSame($user->phone, $row->metadata['attempted_identifier']);
         $this->assertStringNotContainsString('wrong-password', json_encode($row->toArray(), JSON_THROW_ON_ERROR));
     }
 
@@ -39,7 +39,7 @@ class AuditLogTest extends TestCase
         [$owner, $tenant] = $this->createOwner('فروشگاه الف');
 
         $this->post(route('login'), [
-            'email' => $owner->email,
+            'phone' => $owner->phone,
             'password' => 'password',
         ]);
 
@@ -55,7 +55,7 @@ class AuditLogTest extends TestCase
         $owner->update(['status' => 'suspended']);
 
         $this->post(route('login'), [
-            'email' => $owner->email,
+            'phone' => $owner->phone,
             'password' => 'password',
         ]);
 
@@ -90,7 +90,7 @@ class AuditLogTest extends TestCase
         $operator = User::factory()->create();
 
         $this->artisan('ravand:member:add', [
-            'email' => $operator->email,
+            'phone' => $operator->phone,
             'tenant-slug' => $tenant->slug,
             '--role' => 'operator',
         ])->assertSuccessful();

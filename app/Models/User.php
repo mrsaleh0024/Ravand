@@ -12,34 +12,27 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
-use Laravel\Fortify\Contracts\PasskeyUser;
-use Laravel\Fortify\PasskeyAuthenticatable;
-use Laravel\Fortify\TwoFactorAuthenticatable;
 
 /**
  * @property string $id
  * @property string $name
- * @property string|null $email
- * @property string|null $phone
+ * @property string $phone
  * @property UserStatus $status
- * @property Carbon|null $email_verified_at
  * @property string $password
+ * @property bool $must_change_password
+ * @property string|null $bale_chat_id
  * @property Carbon|null $last_login_at
- * @property string|null $two_factor_secret
- * @property string|null $two_factor_recovery_codes
- * @property string|null $two_factor_confirmed_at
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'phone', 'status', 'password', 'email_verified_at', 'last_login_at'])]
-#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
-class User extends Authenticatable implements PasskeyUser
+#[Fillable(['name', 'phone', 'status', 'password', 'must_change_password', 'bale_chat_id', 'last_login_at'])]
+#[Hidden(['password', 'remember_token'])]
+class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasUlid, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+    use HasFactory, HasUlid;
 
     /**
      * Get the attributes that should be cast.
@@ -49,14 +42,21 @@ class User extends Authenticatable implements PasskeyUser
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
             'status' => UserStatus::class,
-            /* @chisel-2fa */
-            'two_factor_confirmed_at' => 'datetime',
-            /* @end-chisel-2fa */
         ];
+    }
+
+    /** Whether this user holds an active owner membership anywhere. */
+    public function isOwner(): bool
+    {
+        return TenantUser::query()
+            ->where('user_id', $this->getKey())
+            ->where('role', TenantRole::Owner->value)
+            ->where('status', 'active')
+            ->exists();
     }
 
     /** All tenant memberships of this user (any status).

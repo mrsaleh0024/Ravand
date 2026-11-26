@@ -7,20 +7,20 @@ use App\Domain\Tenancy\TenantRole;
 use App\Models\Tenant;
 use App\Models\TenantUser;
 use App\Models\User;
+use App\Support\Phone;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
  * Adds an active membership for an existing user to a tenant. In the MVP
- * this replaces the (not yet built) in-panel invitation flow; it is meant to
- * be run by the owner on a trusted machine.
+ * this complements the in-panel member management; it is meant to be run by
+ * the owner on a trusted machine.
  */
 class AddTenantMemberCommand extends Command
 {
     protected $signature = 'ravand:member:add
-        {email : Existing user email}
+        {phone : Existing user mobile number (login identifier)}
         {tenant-slug : Tenant slug}
         {--role=operator : Role: owner|manager|operator}';
 
@@ -28,13 +28,20 @@ class AddTenantMemberCommand extends Command
 
     public function handle(AuditLogger $audit): int
     {
-        $email = Str::lower(trim($this->argument('email')));
+        $phoneRaw = trim($this->argument('phone'));
+        $phone = Phone::normalize($phoneRaw);
         $tenantSlug = trim($this->argument('tenant-slug'));
         $role = $this->option('role');
 
-        $user = User::query()->where('email', $email)->first();
+        if ($phone === null) {
+            $this->error('The mobile number is not a valid Iranian mobile number (expected shape: 09xxxxxxxxx).');
+
+            return self::FAILURE;
+        }
+
+        $user = User::query()->where('phone', $phone)->first();
         if ($user === null) {
-            $this->error('No user found with this email.');
+            $this->error('No user found with this mobile number.');
 
             return self::FAILURE;
         }
@@ -86,7 +93,7 @@ class AddTenantMemberCommand extends Command
             metadata: ['role' => $role, 'user_id' => $user->id],
         );
 
-        $this->info("Membership created: {$user->email} -> {$tenant->slug} ({$role})");
+        $this->info("Membership created: {$user->phone} -> {$tenant->slug} ({$role})");
 
         return self::SUCCESS;
     }

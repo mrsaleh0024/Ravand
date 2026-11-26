@@ -8,6 +8,7 @@ use App\Domain\Tenancy\TenantStatus;
 use App\Models\Tenant;
 use App\Models\TenantUser;
 use App\Models\User;
+use App\Support\Phone;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -33,7 +34,7 @@ class CreateOwnerCommand extends Command
 {
     protected $signature = 'ravand:create-owner
         {--name= : Owner display name}
-        {--email= : Owner email (login identifier)}
+        {--phone= : Owner mobile number (login identifier, 09xxxxxxxxx)}
         {--tenant-name= : Store name}
         {--slug= : Store slug (URL identifier, immutable later)}
         {--currency= : Default currency IRR|IRT}
@@ -44,7 +45,8 @@ class CreateOwnerCommand extends Command
     public function handle(AuditLogger $audit): int
     {
         $name = $this->resolve('name', 'owner.name') ?? text(label: 'Owner display name', required: true);
-        $email = $this->resolve('email', 'owner.email') ?? text(label: 'Owner email (login identifier)', required: true);
+        $phoneRaw = $this->resolve('phone', 'owner.phone') ?? text(label: 'Owner mobile number (login identifier, e.g. 0912xxxxxxx)', required: true);
+        $phone = Phone::normalize($phoneRaw);
         $tenantName = $this->resolve('tenant-name', 'owner.tenant_name') ?? text(label: 'Store name', required: true);
         $currency = $this->resolve('currency', 'owner.currency') ?? 'IRT';
         $slugInput = $this->resolve('slug', 'owner.tenant_slug');
@@ -65,14 +67,14 @@ class CreateOwnerCommand extends Command
         $errors = Validator::make(
             [
                 'name' => $name,
-                'email' => $email,
+                'phone' => $phone,
                 'tenant_name' => $tenantName,
                 'currency' => $currency,
                 'password' => $password,
             ],
             [
                 'name' => ['required', 'string', 'max:80'],
-                'email' => ['required', 'string', 'email:filter', 'max:190', 'unique:users,email'],
+                'phone' => ['required', 'string', 'unique:users,phone'],
                 'tenant_name' => ['required', 'string', 'max:120'],
                 'currency' => ['required', 'string', Rule::in(config('ravand.allowed_currencies'))],
                 // Password::defaults() is only strict in production; the owner
@@ -81,9 +83,13 @@ class CreateOwnerCommand extends Command
             ],
         )->errors();
 
-        if ($errors->isNotEmpty()) {
+        if ($errors->isNotEmpty() || $phone === null) {
             foreach ($errors->all() as $message) {
                 $this->error($message);
+            }
+
+            if ($phone === null) {
+                $this->error('The mobile number is not a valid Iranian mobile number (expected shape: 09xxxxxxxxx).');
             }
 
             return self::FAILURE;
@@ -91,12 +97,11 @@ class CreateOwnerCommand extends Command
 
         $slug = $this->resolveUniqueSlug($slugInput ?? $tenantName);
 
-        [$user, $tenant] = DB::transaction(function () use ($name, $email, $tenantName, $slug, $currency, $password): array {
+        [$user, $tenant] = DB::transaction(function () use ($name, $phone, $tenantName, $slug, $currency, $password): array {
             $user = User::query()->create([
                 'name' => $name,
-                'email' => Str::lower($email),
+                'phone' => $phone,
                 'status' => UserStatus::Active->value,
-                'email_verified_at' => now(),
                 'password' => $password,
             ]);
 
@@ -142,7 +147,7 @@ class CreateOwnerCommand extends Command
             ['Key', 'Value'],
             [
                 ['Owner name', $user->name],
-                ['Email', $user->email],
+                ['Mobile (login)', $user->phone],
                 ['Store', $tenant->name],
                 ['Slug', $tenant->slug],
                 ['Currency', $tenant->default_currency],

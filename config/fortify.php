@@ -22,9 +22,9 @@ return [
     | Fortify Password Broker
     |--------------------------------------------------------------------------
     |
-    | Here you may specify which password broker Fortify can use when a user
-    | is resetting their password. This configured value should match one
-    | of your password brokers setup in your "auth" configuration file.
+    | This value defines which password broker Fortify can use. Ravand has no
+    | email-based password reset (ADR-021), so the broker is unused but kept
+    | configured for framework compatibility.
     |
     */
 
@@ -35,28 +35,23 @@ return [
     | Username / Email
     |--------------------------------------------------------------------------
     |
-    | This value defines which model attribute should be considered as your
-    | application's "username" field. Typically, this might be the email
-    | address of the users but you are free to change this value here.
-    |
-    | Out of the box, Fortify expects forgot password and reset password
-    | requests to have a field named 'email'. If the application uses
-    | another name for the field you may define it below as needed.
+    | ADR-019: the Iranian mobile number IS the login identity. There is no
+    | email and no separate username — the login form posts a `phone` field
+    | which is normalized to 09xxxxxxxxx before the lookup.
     |
     */
 
-    'username' => 'email',
+    'username' => 'phone',
 
-    'email' => 'email',
+    'email' => 'phone',
 
     /*
     |--------------------------------------------------------------------------
     | Lowercase Usernames
     |--------------------------------------------------------------------------
     |
-    | This value defines whether usernames should be lowercased before saving
-    | them in the database, as some database system string fields are case
-    | sensitive. You may disable this for your application if necessary.
+    | Digits are case-insensitive; harmless normalization for the phone
+    | identifier (kept for the CanonicalizeUsername pipeline action).
     |
     */
 
@@ -68,8 +63,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may configure the path where users will get redirected during
-    | authentication or password reset when the operations are successful
-    | and the user is authenticated. You are free to change this value.
+    | authentication when the operation is successful.
     |
     */
 
@@ -79,11 +73,6 @@ return [
     |--------------------------------------------------------------------------
     | Fortify Routes Prefix / Subdomain
     |--------------------------------------------------------------------------
-    |
-    | Here you may specify which prefix Fortify will assign to all the routes
-    | that it registers with the application. If necessary, you may change
-    | subdomain under which all of the Fortify routes will be available.
-    |
     */
 
     'prefix' => '',
@@ -94,94 +83,72 @@ return [
     |--------------------------------------------------------------------------
     | Fortify Routes Middleware
     |--------------------------------------------------------------------------
-    |
-    | Here you may specify which middleware Fortify will assign to the routes
-    | that it registers with the application. If necessary, you may change
-    | these middleware but typically this provided default is preferred.
-    |
     */
 
     'middleware' => ['web'],
 
     /*
     |--------------------------------------------------------------------------
+    | Login Pipeline
+    |--------------------------------------------------------------------------
+    |
+    | Custom pipeline (ADR-019/020): phone credentials + owner OTP branch.
+    | AttemptPhoneAuthentication resolves the user by mobile number and,
+    | for the owner with Bale 2FA configured, defers the session start to
+    | the OTP challenge instead of logging in immediately.
+    |
+    */
+
+    'pipelines' => [
+        'login' => [
+            Laravel\Fortify\Actions\EnsureLoginIsNotThrottled::class,
+            Laravel\Fortify\Actions\CanonicalizeUsername::class,
+            App\Auth\Pipeline\AttemptPhoneAuthentication::class,
+            Laravel\Fortify\Actions\PrepareAuthenticatedSession::class,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Rate Limiting
     |--------------------------------------------------------------------------
     |
-    | By default, Fortify will throttle logins to five requests per minute for
-    | every email and IP address combination. However, if you would like to
-    | specify a custom rate limiter to call then you may specify it here.
+    | Logins and OTP verification attempts are throttled per identifier and
+    | IP. `otp` is registered in App\Providers\FortifyServiceProvider.
     |
     */
 
     'limiters' => [
         'login' => 'login',
-        /* @chisel-2fa */
-        'two-factor' => 'two-factor',
-        /* @end-chisel-2fa */
-        /* @chisel-passkeys */
-        'passkeys' => 'passkeys',
-        /* @end-chisel-passkeys */
+        'otp' => 'otp',
     ],
 
     /*
     |--------------------------------------------------------------------------
     | Register View Routes
     |--------------------------------------------------------------------------
-    |
-    | Here you may specify if the routes returning views should be disabled as
-    | you may not need them when building your own application. This may be
-    | especially true if you're writing a custom single-page application.
-    |
     */
 
     'views' => true,
-
-    /* @chisel-passkeys */
-    /*
-    |--------------------------------------------------------------------------
-    | Passkeys
-    |--------------------------------------------------------------------------
-    |
-    | These settings configure Fortify's passkey (WebAuthn) support.
-    |
-    */
-
-    'passkeys' => [
-        'relying_party_id' => parse_url(config('app.url'), PHP_URL_HOST),
-        'allowed_origins' => [config('app.url')],
-        'user_handle_secret' => env('PASSKEYS_USER_HANDLE_SECRET', config('app.key')),
-        'timeout' => 60000,
-    ],
-    /* @end-chisel-passkeys */
 
     /*
     |--------------------------------------------------------------------------
     | Features
     |--------------------------------------------------------------------------
     |
-    | Some of the Fortify features are optional. You may disable the features
-    | by removing them from this array. You're free to only remove some of
-    | these features, or you can even remove all of these if you need to.
+    | All optional Fortify features are intentionally disabled (ADR-019/021):
+    |   - registration / email verification: accounts exist only through the
+    |     owner-setup command and the panel;
+    |   - email password reset: replaced by panel-side reset requests;
+    |   - TOTP two-factor and passkeys: replaced by Bale OTP for the owner.
+    |
+    | The password-confirmation routes (`password.confirm`) are registered
+    | unconditionally by Fortify and stay enabled for sensitive screens.
     |
     */
 
     'features' => [
-        // Registration and email verification are intentionally disabled:
-        // accounts are created via the secure owner-setup command only.
-        Features::resetPasswords(),
-        /* @chisel-2fa */
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-            // 'window' => 0
-        ]),
-        /* @end-chisel-2fa */
-        /* @chisel-passkeys */
-        Features::passkeys([
-            'confirmPassword' => true,
-        ]),
-        /* @end-chisel-passkeys */
+        //
     ],
 
 ];

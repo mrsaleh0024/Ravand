@@ -5,7 +5,6 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
-use Laravel\Fortify\Features;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -24,7 +23,7 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->post(route('login.store'), [
-            'email' => $user->email,
+            'phone' => $user->phone,
             'password' => 'password',
         ]);
 
@@ -32,35 +31,24 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
-    /* @chisel-2fa */
-    public function test_users_with_two_factor_enabled_are_redirected_to_two_factor_challenge()
+    public function test_login_accepts_persian_digits_and_plus98_shapes()
     {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
+        $user = User::factory()->create();
 
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-        ]);
-
-        $user = User::factory()->withTwoFactor()->create();
-
-        $response = $this->post(route('login'), [
-            'email' => $user->email,
+        $this->post(route('login.store'), [
+            'phone' => '+۹۸'.substr($user->phone, 1),
             'password' => 'password',
         ]);
 
-        $response->assertRedirect(route('two-factor.login'));
-        $response->assertSessionHas('login.id', $user->id);
-        $this->assertGuest();
+        $this->assertAuthenticated();
     }
-    /* @end-chisel-2fa */
 
     public function test_users_can_not_authenticate_with_invalid_password()
     {
         $user = User::factory()->create();
 
         $this->post(route('login.store'), [
-            'email' => $user->email,
+            'phone' => $user->phone,
             'password' => 'wrong-password',
         ]);
 
@@ -82,10 +70,10 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        RateLimiter::increment(md5('login'.implode('|', [$user->email, '127.0.0.1'])), amount: 5);
+        RateLimiter::increment(md5('login'.implode('|', [$user->phone, '127.0.0.1'])), amount: 5);
 
         $response = $this->post(route('login.store'), [
-            'email' => $user->email,
+            'phone' => $user->phone,
             'password' => 'wrong-password',
         ]);
 

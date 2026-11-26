@@ -29,7 +29,7 @@ class ProfileUpdateTest extends TestCase
             ->actingAs($user)
             ->patch(route('profile.update'), [
                 'name' => 'Test User',
-                'email' => 'test@example.com',
+                'phone' => '09121110000',
             ]);
 
         $response
@@ -39,11 +39,10 @@ class ProfileUpdateTest extends TestCase
         $user->refresh();
 
         $this->assertSame('Test User', $user->name);
-        $this->assertSame('test@example.com', $user->email);
-        $this->assertNull($user->email_verified_at);
+        $this->assertSame('09121110000', $user->phone);
     }
 
-    public function test_email_is_stored_in_lowercase_so_the_user_can_still_log_in()
+    public function test_phone_is_normalized_and_login_still_works()
     {
         $user = User::factory()->create();
 
@@ -51,25 +50,25 @@ class ProfileUpdateTest extends TestCase
             ->actingAs($user)
             ->patch(route('profile.update'), [
                 'name' => 'Test User',
-                'email' => 'Test@Example.com',
+                'phone' => '+۹۸ 912 111 00 01',
             ])
             ->assertSessionHasNoErrors();
 
-        $this->assertSame('test@example.com', $user->refresh()->email);
+        $this->assertSame('09121110001', $user->refresh()->phone);
 
         $this->post(route('logout'));
 
         $this->post(route('login.store'), [
-            'email' => 'Test@Example.com',
+            'phone' => '09121110001',
             'password' => 'password',
         ]);
 
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_email_must_be_unique_regardless_of_case()
+    public function test_phone_must_be_unique_and_valid()
     {
-        User::factory()->create(['email' => 'taken@example.com']);
+        User::factory()->create(['phone' => '09122220000']);
 
         $user = User::factory()->create();
 
@@ -78,30 +77,22 @@ class ProfileUpdateTest extends TestCase
             ->from(route('profile.edit'))
             ->patch(route('profile.update'), [
                 'name' => 'Test User',
-                'email' => 'Taken@Example.com',
+                'phone' => '09122220000',
             ]);
 
         $response
-            ->assertSessionHasErrors('email')
+            ->assertSessionHasErrors('phone')
             ->assertRedirect(route('profile.edit'));
-    }
-
-    public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
-    {
-        $user = User::factory()->create();
 
         $response = $this
             ->actingAs($user)
+            ->from(route('profile.edit'))
             ->patch(route('profile.update'), [
                 'name' => 'Test User',
-                'email' => $user->email,
+                'phone' => '12345',
             ]);
 
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('profile.edit'));
-
-        $this->assertNotNull($user->refresh()->email_verified_at);
+        $response->assertSessionHasErrors('phone');
     }
 
     public function test_user_can_delete_their_account()

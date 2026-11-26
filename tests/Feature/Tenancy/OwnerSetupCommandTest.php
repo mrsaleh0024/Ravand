@@ -20,20 +20,19 @@ class OwnerSetupCommandTest extends TestCase
     {
         $this->artisan('ravand:create-owner', [
             '--name' => 'صاحب فروشگاه',
-            '--email' => 'owner@example.com',
+            '--phone' => '09121000000',
             '--tenant-name' => 'فروشگاه نمونه',
             '--slug' => 'sample-store',
             '--currency' => 'IRT',
             '--password' => 'S3cure-Passw0rd!phase01',
         ])->assertSuccessful();
 
-        $user = User::query()->where('email', 'owner@example.com')->firstOrFail();
+        $user = User::query()->where('phone', '09121000000')->firstOrFail();
         $tenant = Tenant::query()->where('slug', 'sample-store')->firstOrFail();
 
         $this->assertSame('صاحب فروشگاه', $user->name);
         $this->assertSame('active', $user->status->value);
-        $this->assertNotNull($user->email_verified_at);
-        $this->assertSame('Asia/Tehran', $tenant->timezone);
+                $this->assertSame('Asia/Tehran', $tenant->timezone);
         $this->assertSame('IRT', $tenant->default_currency);
 
         $membership = TenantUser::query()->where('user_id', $user->id)->firstOrFail();
@@ -51,7 +50,7 @@ class OwnerSetupCommandTest extends TestCase
         config([
             'ravand.owner' => [
                 'name' => 'Env Owner',
-                'email' => 'env-owner@example.com',
+                'phone' => '09121000001',
                 'password' => 'S3cure-Passw0rd!phase01',
                 'tenant_name' => 'Env Store',
                 'tenant_slug' => 'env-store',
@@ -61,7 +60,7 @@ class OwnerSetupCommandTest extends TestCase
 
         $this->artisan('ravand:create-owner')->assertSuccessful();
 
-        $user = User::query()->where('email', 'env-owner@example.com')->firstOrFail();
+        $user = User::query()->where('phone', '09121000001')->firstOrFail();
         $tenant = Tenant::query()->where('slug', 'env-store')->firstOrFail();
 
         $this->assertSame('Env Owner', $user->name);
@@ -76,27 +75,27 @@ class OwnerSetupCommandTest extends TestCase
         config([
             'ravand.owner' => [
                 'name' => 'Env Owner',
-                'email' => 'env-owner@example.com',
+                'phone' => '09121000001',
                 'password' => 'S3cure-Passw0rd!phase01',
                 'tenant_name' => 'Env Store',
             ],
         ]);
 
         $this->artisan('ravand:create-owner', [
-            '--email' => 'cli-owner@example.com',
+            '--phone' => '09121000002',
         ])->assertSuccessful();
 
-        $this->assertNotNull(User::query()->where('email', 'cli-owner@example.com')->first());
-        $this->assertNull(User::query()->where('email', 'env-owner@example.com')->first());
+        $this->assertNotNull(User::query()->where('phone', '09121000002')->first());
+        $this->assertNull(User::query()->where('phone', '09121000001')->first());
     }
 
-    public function test_command_rejects_duplicate_email(): void
+    public function test_command_rejects_duplicate_phone(): void
     {
-        User::factory()->create(['email' => 'taken@example.com']);
+        User::factory()->create(['phone' => '09121000000']);
 
         $this->artisan('ravand:create-owner', [
             '--name' => 'کاربر دوم',
-            '--email' => 'taken@example.com',
+            '--phone' => '09121000000',
             '--tenant-name' => 'فروشگاه دوم',
             '--currency' => 'IRT',
             '--password' => 'S3cure-Passw0rd!phase01',
@@ -109,20 +108,20 @@ class OwnerSetupCommandTest extends TestCase
     {
         $this->artisan('ravand:create-owner', [
             '--name' => 'کاربر سوم',
-            '--email' => 'weak@example.com',
+            '--phone' => '09121000003',
             '--tenant-name' => 'فروشگاه سوم',
             '--currency' => 'IRT',
             '--password' => 'weakpass',
         ])->assertExitCode(1);
 
-        $this->assertNull(User::query()->where('email', 'weak@example.com')->first());
+        $this->assertNull(User::query()->where('phone', '09121000003')->first());
     }
 
     public function test_command_generates_unique_slug_for_duplicate_names(): void
     {
         $this->artisan('ravand:create-owner', [
             '--name' => 'مالک یک',
-            '--email' => 'one@example.com',
+            '--phone' => '09121000004',
             '--tenant-name' => 'فروشگاه مشترک',
             '--currency' => 'IRT',
             '--password' => 'S3cure-Passw0rd!phase01',
@@ -130,7 +129,7 @@ class OwnerSetupCommandTest extends TestCase
 
         $this->artisan('ravand:create-owner', [
             '--name' => 'مالک دو',
-            '--email' => 'two@example.com',
+            '--phone' => '09121000005',
             '--tenant-name' => 'فروشگاه مشترک',
             '--currency' => 'IRT',
             '--password' => 'S3cure-Passw0rd!phase01',
@@ -145,17 +144,17 @@ class OwnerSetupCommandTest extends TestCase
     {
         $this->artisan('ravand:create-owner', [
             '--name' => 'مالک یک',
-            '--email' => 'one@example.com',
+            '--phone' => '09121000004',
             '--tenant-name' => 'فروشگاه اول',
             '--slug' => 'store-one',
             '--currency' => 'IRT',
             '--password' => 'S3cure-Passw0rd!phase01',
         ])->assertSuccessful();
 
-        $staff = User::factory()->create(['email' => 'staff@example.com']);
+        $staff = User::factory()->create(['phone' => '09121000006']);
 
         $this->artisan('ravand:member:add', [
-            'email' => 'staff@example.com',
+            'phone' => '09121000006',
             'tenant-slug' => 'store-one',
             '--role' => 'operator',
         ])->assertSuccessful();
@@ -167,7 +166,7 @@ class OwnerSetupCommandTest extends TestCase
 
         // Duplicate attach must fail cleanly.
         $this->artisan('ravand:member:add', [
-            'email' => 'staff@example.com',
+            'phone' => '09121000006',
             'tenant-slug' => 'store-one',
             '--role' => 'manager',
         ])->assertExitCode(1);

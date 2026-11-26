@@ -7,13 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { t } from '@/lib/i18n';
 import { store } from '@/routes/password/confirm';
-/* @chisel-passkeys */
-import {
-    index as confirmOptions,
-    store as confirmStore,
-} from '@/actions/Laravel/Passkeys/Http/Controllers/PasskeyConfirmationController';
-import PasskeyVerify from '@/components/PasskeyVerify.vue';
-/* @end-chisel-passkeys */
 
 defineOptions({
     layout: {
@@ -26,18 +19,6 @@ defineOptions({
 
 <template>
     <Head :title="t('auth.confirmTitle')" />
-
-    <!-- @chisel-passkeys -->
-    <PasskeyVerify
-        :routes="{
-            options: confirmOptions(),
-            submit: confirmStore(),
-        }"
-        label="تأیید با Passkey"
-        loading-label="در حال تأیید…"
-        separator="یا با رمز عبور تأیید کنید"
-    />
-    <!-- @end-chisel-passkeys -->
 
     <Form
         v-bind="store.form()"

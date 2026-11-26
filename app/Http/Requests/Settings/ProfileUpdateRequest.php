@@ -3,21 +3,22 @@
 namespace App\Http\Requests\Settings;
 
 use App\Concerns\ProfileValidationRules;
+use App\Support\Phone;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Str;
 
 class ProfileUpdateRequest extends FormRequest
 {
     use ProfileValidationRules;
 
     /**
-     * Prepare the data for validation.
+     * Prepare the data for validation: normalize the mobile number to the
+     * canonical 09xxxxxxxxx form before the uniqueness check (ADR-019).
      */
     protected function prepareForValidation(): void
     {
-        if (config('fortify.lowercase_usernames') && is_string($this->input('email'))) {
-            $this->merge(['email' => Str::lower($this->input('email'))]);
+        if (is_string($this->input('phone'))) {
+            $this->merge(['phone' => Phone::normalize($this->input('phone')) ?? $this->input('phone')]);
         }
     }
 

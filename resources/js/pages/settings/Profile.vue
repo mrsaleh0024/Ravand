@@ -35,7 +35,7 @@ const user = computed(() => page.props.auth.user);
         <Heading
             variant="small"
             :title="t('nav.profile')"
-            description="نام نمایشی و ایمیل خود را به‌روز کنید"
+            :description="t('settings.description')"
         />
 
         <Form
@@ -44,33 +44,35 @@ const user = computed(() => page.props.auth.user);
             v-slot="{ errors, processing }"
         >
             <div class="grid gap-2">
-                <Label for="name">نام</Label>
+                <Label for="name">{{ t('common.name') }}</Label>
                 <Input
                     id="name"
-                    class="mt-1 block w-full"
                     name="name"
                     :default-value="user.name"
                     required
                     autocomplete="name"
-                    placeholder="نام کامل"
+                    :placeholder="t('common.name')"
                 />
-                <InputError class="mt-2" :message="errors.name" />
+                <InputError :message="errors.name" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="email">{{ t('auth.email') }}</Label>
+                <Label for="phone">{{ t('common.phone') }}</Label>
                 <Input
-                    id="email"
-                    type="email"
+                    id="phone"
+                    type="tel"
                     dir="ltr"
-                    class="mt-1 block w-full"
-                    name="email"
-                    :default-value="user.email ?? undefined"
+                    inputmode="tel"
+                    name="phone"
+                    :default-value="user.phone"
                     required
                     autocomplete="username"
-                    placeholder="email@example.com"
+                    :placeholder="t('auth.phonePlaceholder')"
                 />
-                <InputError class="mt-2" :message="errors.email" />
+                <p class="text-xs leading-5 text-muted-foreground">
+                    {{ t('auth.phoneHint') }}
+                </p>
+                <InputError :message="errors.phone" />
             </div>
 
             <div class="flex items-center gap-4">

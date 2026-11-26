@@ -46,7 +46,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => fn () => $request->user()?->only(['id', 'name', 'email']),
+                'user' => fn () => $request->user()?->only(['id', 'name', 'phone']),
                 'role' => fn () => app(TenantContext::class)->role()?->value,
                 'memberships' => function () use ($request) {
                     $user = $request->user();
