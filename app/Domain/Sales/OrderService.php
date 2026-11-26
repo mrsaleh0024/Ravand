@@ -3,6 +3,7 @@
 namespace App\Domain\Sales;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Loyalty\LoyaltyService;
 use App\Domain\Tenancy\TenantContext;
 use App\Models\Customer;
 use App\Models\Order;
@@ -35,6 +36,7 @@ final class OrderService
         private readonly AuditLogger $audit,
         private readonly OrderNumberGenerator $numbers,
         private readonly InventoryService $inventory,
+        private readonly LoyaltyService $loyalty,
     ) {}
 
     /**
@@ -220,6 +222,10 @@ final class OrderService
 
             $order->forceFill(['status' => OrderStatus::Cancelled->value])->save();
 
+            // Cancelling before delivery normally happens before completion,
+            // so this is a no-op unless points were already granted.
+            $this->loyalty->reverseForOrder($order, 'لغو سفارش');
+
             return $order;
         });
 
@@ -256,6 +262,10 @@ final class OrderService
                 'return_note' => $note,
             ])->save();
 
+            // A completed order that comes back reverses its earned points
+            // (phase 04); returns from `delivered` never earned anything.
+            $this->loyalty->reverseForOrder($order, 'مرجوعی سفارش');
+
             return $order;
         });
 
@@ -290,6 +300,12 @@ final class OrderService
                 'status' => $to->value,
                 'completed_at' => $to === OrderStatus::Completed ? now() : $order->completed_at,
             ])->save();
+
+            // Loyalty points are granted exactly once, at completion
+            // (phase 04, spec section 10) — idempotent inside this transaction.
+            if ($to === OrderStatus::Completed) {
+                $this->loyalty->awardForOrder($order);
+            }
         });
 
         $this->audit->log(

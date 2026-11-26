@@ -167,6 +167,12 @@ class AppServiceProvider extends ServiceProvider
         // Viewing orders, recording sales and taking payments stay open to
         // every active role: operators are the data-entry workforce
         // (spec 8.2, «ثبت فروش دستی»).
+
+        // --- Loyalty club (phase 04) ------------------------------------------
+        // Enabling/configuring the club and granting manual adjustments move
+        // value, so they stay with owner/manager; viewing balances/history in
+        // the customer profile remains open to every role.
+        Gate::define('loyalty.manage', fn (User $user): bool => $isOwnerOrManager());
     }
 
     /**
