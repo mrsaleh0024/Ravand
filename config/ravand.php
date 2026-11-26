@@ -107,7 +107,8 @@ return [
         'api_base' => env('BALE_API_BASE', 'https://tapi.bale.ai/bot'),
         'webhook_secret' => env('BALE_WEBHOOK_SECRET'),
         // Owner two-factor via Bale OTP; managers/operators never get OTP.
-        'owner_2fa' => env('BALE_OWNER_2FA', true),
+        // filter_var so 'true'/'false'/'0'/'1' strings in .env all behave.
+        'owner_2fa' => filter_var(env('BALE_OWNER_2FA', true), FILTER_VALIDATE_BOOLEAN),
         // Optional env fallback chat id (normally stored on the owner row).
         'chat_id' => env('RAVAND_BALE_CHAT_ID'),
         'otp' => [

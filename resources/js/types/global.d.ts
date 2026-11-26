@@ -1,6 +1,7 @@
 import type { Directive } from 'vue';
-import type { Auth } from '@/types/auth';
+import type { Auth, BaleTestResult, TempPasswordFlash } from '@/types/auth';
 import type { Membership, TenantInfo, TenantRole } from '@/types/tenancy';
+import type { FlashToast } from '@/types/ui';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -25,9 +26,13 @@ declare module '@inertiajs/core' {
             };
             tenant?: TenantInfo | null;
             sidebarOpen: boolean;
-            /** One-time flashed values (toasts, temp password, Bale test result). */
-            flash?: Record<string, unknown>;
             [key: string]: unknown;
+        };
+        /** One-shot session flash payloads (Inertia::flash on the server). */
+        flashDataType: {
+            toast?: FlashToast;
+            baleTest?: BaleTestResult;
+            tempPassword?: TempPasswordFlash;
         };
     }
 }

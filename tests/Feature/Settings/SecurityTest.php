@@ -2,99 +2,119 @@
 
 namespace Tests\Feature\Settings;
 
+use App\Models\Tenant;
+use App\Models\TenantUser;
 use App\Models\User;
-use App\Services\Bale\BaleBot;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
-use Tests\Concerns\CreatesTenancy;
 use Tests\TestCase;
 
+/**
+ * Security settings page (ADR-020): password change plus the owner's
+ * Bale 2FA block. Passkeys and TOTP two-factor were removed.
+ */
 class SecurityTest extends TestCase
 {
-    use CreatesTenancy, RefreshDatabase;
+    use RefreshDatabase;
 
-    public function test_security_page_is_displayed_with_bale_block_for_owner()
+    protected function tearDown(): void
     {
-        [$owner] = $this->createOwner();
+        config([
+            'ravand.bale.code_bot_token' => null,
+            'ravand.bale.admin_bot_token' => null,
+        ]);
 
-        $this->actingAs($owner)
-            ->withSession(['auth.password_confirmed_at' => time()])
-            ->get(route('security.edit'))
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('settings/Security')
-                ->where('bale.isOwner', true)
-                ->where('bale.chatId', null)
-                ->where('bale.enabled', config('ravand.bale.owner_2fa')),
-            );
+        parent::tearDown();
     }
 
-    public function test_security_page_shows_bale_block_as_non_owner_for_regular_user()
+    /** Create a user and promote them to owner of a fresh tenant. */
+    protected function makeOwner(array $extra = []): User
+    {
+        $user = User::factory()->create($extra);
+
+        $tenant = Tenant::query()->create(['name' => 'فروشگاه', 'slug' => 'store-'.uniqid()]);
+        TenantUser::query()->create([
+            'tenant_id' => $tenant->id,
+            'user_id' => $user->id,
+            'role' => 'owner',
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        return $user;
+    }
+
+    public function test_security_page_is_displayed_for_regular_user()
     {
         $user = User::factory()->create();
 
         $this->actingAs($user)
             ->withSession(['auth.password_confirmed_at' => time()])
             ->get(route('security.edit'))
+            ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('settings/Security')
-                ->where('bale.isOwner', false),
+                ->where('bale.isOwner', false)
+                ->where('bale.chatId', null)
             );
     }
 
-    public function test_owner_can_link_bale_chat_id()
+    public function test_security_page_exposes_bale_status_for_owner()
     {
+        // Explicitly unset bot tokens so the status flags are deterministic.
         config([
-            'ravand.bale.code_bot_token' => 'test-code-token',
-            'ravand.bale.admin_bot_token' => 'test-admin-token',
+            'ravand.bale.code_bot_token' => null,
+            'ravand.bale.admin_bot_token' => null,
         ]);
 
-        [$owner] = $this->createOwner();
+        $owner = $this->makeOwner(['bale_chat_id' => '123456789']);
 
         $this->actingAs($owner)
-            ->from(route('security.edit'))
             ->withSession(['auth.password_confirmed_at' => time()])
-            ->put(route('settings.bale.update'), ['bale_chat_id' => '987654321'])
-            ->assertRedirect(route('security.edit'))
-            ->assertSessionHasNoErrors();
+            ->get(route('security.edit'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('settings/Security')
+                ->where('bale.isOwner', true)
+                ->where('bale.chatId', '123456789')
+                ->where('bale.codeBot', false)
+                ->where('bale.adminBot', false)
+            );
+    }
+
+    public function test_owner_can_save_bale_chat_id()
+    {
+        $owner = $this->makeOwner();
+
+        $response = $this
+            ->actingAs($owner)
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->from(route('security.edit'))
+            ->put(route('settings.bale.update'), [
+                'bale_chat_id' => '987654321',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('security.edit'));
 
         $this->assertSame('987654321', $owner->refresh()->bale_chat_id);
     }
 
-    public function test_non_owner_cannot_link_bale_chat_id()
+    public function test_non_owner_cannot_save_bale_chat_id()
     {
         $user = User::factory()->create();
 
-        $this->actingAs($user)
+        $response = $this
+            ->actingAs($user)
             ->withSession(['auth.password_confirmed_at' => time()])
-            ->put(route('settings.bale.update'), ['bale_chat_id' => '987654321'])
-            ->assertForbidden();
+            ->from(route('security.edit'))
+            ->put(route('settings.bale.update'), [
+                'bale_chat_id' => '987654321',
+            ]);
 
-        $this->assertNull($user->refresh()->bale_chat_id);
-    }
-
-    public function test_bale_test_message_is_sent_to_linked_chat()
-    {
-        config([
-            'ravand.bale.code_bot_token' => 'test-code-token',
-            'ravand.bale.api_base' => 'https://tapi.bale.ai/bot',
-        ]);
-
-        Http::fake();
-
-        [$owner] = $this->createOwner();
-        $owner->forceFill(['bale_chat_id' => '123456789'])->save();
-
-        $this->actingAs($owner)
-            ->withSession(['auth.password_confirmed_at' => time()])
-            ->post(route('settings.bale.test'), ['bot' => 'code'])
-            ->assertRedirect();
-
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), 'tapi.bale.ai')
-                && str_contains($request->url(), 'test-code-token')
-                && $request['chat_id'] === '123456789';
-        });
+        $response->assertForbidden();
     }
 
     public function test_password_can_be_updated()
@@ -103,8 +123,8 @@ class SecurityTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->from(route('security.edit'))
             ->withSession(['auth.password_confirmed_at' => time()])
+            ->from(route('security.edit'))
             ->put(route('user-password.update'), [
                 'current_password' => 'password',
                 'password' => 'new-password',
@@ -115,7 +135,7 @@ class SecurityTest extends TestCase
             ->assertSessionHasNoErrors()
             ->assertRedirect(route('security.edit'));
 
-        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('new-password', $user->refresh()->password));
+        $this->assertTrue(Hash::check('new-password', $user->refresh()->password));
     }
 
     public function test_correct_password_must_be_provided_to_update_password()
@@ -125,7 +145,6 @@ class SecurityTest extends TestCase
         $response = $this
             ->actingAs($user)
             ->from(route('security.edit'))
-            ->withSession(['auth.password_confirmed_at' => time()])
             ->put(route('user-password.update'), [
                 'current_password' => 'wrong-password',
                 'password' => 'new-password',

@@ -22,7 +22,8 @@ import type { TempPasswordFlash } from '@/types/auth';
 const page = usePage();
 
 const flash = computed(
-    () => page.props.flash?.tempPassword as TempPasswordFlash | undefined,
+    // Inertia v3 exposes session flash at the page level (not inside props).
+    () => page.flash?.tempPassword as TempPasswordFlash | undefined,
 );
 
 const visible = computed(() => flash.value !== undefined);

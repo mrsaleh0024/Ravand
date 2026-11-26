@@ -8,6 +8,7 @@ import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,7 +37,8 @@ defineOptions({
 const page = usePage();
 
 const baleTest = computed(
-    () => page.props.flash?.baleTest as BaleTestResult | undefined,
+    // Inertia v3 exposes session flash at the page level (not inside props).
+    () => page.flash?.baleTest as BaleTestResult | undefined,
 );
 </script>
 

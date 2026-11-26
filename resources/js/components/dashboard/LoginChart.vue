@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { t } from '@/lib/i18n';
+import { formatJalaliMonthDay } from '@/lib/format';
 import type { LoginSeriesPoint } from '@/types';
 
 /**
@@ -66,7 +67,8 @@ const xLabels = computed(() => {
         .filter((_, i) => i % step === 0)
         .map((p, i) => ({
             x: xFor(i * step, pts.length),
-            label: p.label,
+            // Persian-first labels (ADR-005): Jalali month/day, no year.
+            label: formatJalaliMonthDay(p.date),
         }));
 });
 </script>

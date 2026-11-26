@@ -53,9 +53,8 @@ class OtpChallengeTest extends TestCase
     protected function codeFromSentMessage(): string
     {
         $message = collect(Http::recorded())
-            ->pluck(0)
-            ->filter(fn ($request) => str_contains($request->url(), 'sendMessage'))
-            ->map(fn ($request) => (string) ($request['text'] ?? ''))
+            ->map(fn ($pair) => $pair[0]->data()['text'] ?? null)
+            ->filter(fn ($text) => is_string($text))
             ->last()
             ?? '';
 
@@ -77,11 +76,9 @@ class OtpChallengeTest extends TestCase
 
         $response->assertRedirect(route('otp.challenge'));
         $this->assertGuest();
-    }
 
-    public function test_otp_challenge_page_requires_a_pending_challenge(): void
-    {
-        // A direct visit without a prior credential step bounces to login.
+        // A visitor without a pending challenge is bounced back to the login.
+        $this->flushSession();
         $this->get(route('otp.challenge'))->assertRedirect(route('login'));
     }
 

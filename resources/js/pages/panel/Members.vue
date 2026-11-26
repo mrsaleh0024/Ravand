@@ -86,6 +86,7 @@ const createOpen = ref(false);
                         :reset-on-success="true"
                         class="space-y-5"
                         v-slot="{ errors, processing }"
+                        @success="createOpen = false"
                     >
                         <DialogHeader>
                             <DialogTitle>

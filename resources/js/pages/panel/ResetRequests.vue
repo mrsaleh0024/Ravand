@@ -35,23 +35,23 @@ defineOptions({
     },
 });
 
+const statusVariants = {
+    pending: 'outline',
+    approved: 'default',
+    rejected: 'secondary',
+} as const;
+
+const statusClasses = {
+    pending: 'text-amber-700 dark:text-amber-400',
+    approved: 'bg-emerald-600 text-white hover:bg-emerald-600',
+    rejected: 'text-muted-foreground',
+} as const;
+
 const statusVariant = (status: ResetRequestItem['status']) =>
-    (
-        {
-            pending: 'outline',
-            approved: 'default',
-            rejected: 'secondary',
-        } as const
-    )[status];
+    statusVariants[status];
 
 const statusClass = (status: ResetRequestItem['status']) =>
-    (
-        {
-            pending: 'text-amber-700 dark:text-amber-400',
-            approved: 'bg-emerald-600 text-white hover:bg-emerald-600',
-            rejected: 'text-muted-foreground',
-        } as const
-    )[status];
+    statusClasses[status];
 </script>
 
 <template>

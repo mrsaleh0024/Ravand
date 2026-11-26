@@ -6,6 +6,7 @@ use App\Models\PasswordResetRequest;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Concerns\CreatesTenancy;
 use Tests\TestCase;
 
@@ -40,6 +41,37 @@ class MemberManagementTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('audit_logs', ['action' => 'member.created', 'tenant_id' => $tenant->id]);
+    }
+
+    public function test_temp_password_is_flashed_once_to_the_next_response(): void
+    {
+        [$owner, $tenant] = $this->createOwner();
+
+        $this->actingAs($owner)
+            ->withCurrentTenant($owner, $tenant)
+            ->post(route('panel.members.store'), [
+                'name' => 'کارشناس فلش',
+                'phone' => '09125556677',
+                'role' => 'operator',
+                'temp_password' => 'FlashedTemp1',
+            ])
+            ->assertSessionHasNoErrors();
+
+        // The flash survives the redirect and reaches exactly one response.
+        $followUp = $this->actingAs($owner)
+            ->withCurrentTenant($owner, $tenant)
+            ->get(route('panel.members.index'));
+
+        $followUp->assertInertia(fn (Assert $page) => $page
+            ->component('panel/Members')
+            ->hasFlash('tempPassword')
+        );
+
+        // ...and is gone on the response after it.
+        $this->actingAs($owner)
+            ->withCurrentTenant($owner, $tenant)
+            ->get(route('panel.members.index'))
+            ->assertInertia(fn (Assert $page) => $page->missingFlash('tempPassword'));
     }
 
     public function test_manager_can_create_operators_but_not_managers(): void
