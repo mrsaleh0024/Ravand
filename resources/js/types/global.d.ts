@@ -25,6 +25,8 @@ declare module '@inertiajs/core' {
             };
             tenant?: TenantInfo | null;
             sidebarOpen: boolean;
+            /** One-time flashed values (toasts, temp password, Bale test result). */
+            flash?: Record<string, unknown>;
             [key: string]: unknown;
         };
     }

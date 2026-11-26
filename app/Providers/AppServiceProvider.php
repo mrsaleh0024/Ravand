@@ -4,10 +4,12 @@ namespace App\Providers;
 
 use App\Domain\Audit\AuditLogger;
 use App\Domain\Tenancy\TenantContext;
+use App\Domain\Tenancy\TenantRole;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -62,7 +64,8 @@ class AppServiceProvider extends ServiceProvider
      * Server-side authorization based on the tenant context role. The context
      * is only filled by the `tenant` middleware; routes using these abilities
      * MUST be registered behind `auth` + `tenant` middleware. Role rules live
-     * centrally in TenantRole (spec 8.2).
+     * centrally in TenantRole (spec 8.2). Panel access abilities (ADR-022)
+     * follow the same pattern: owner > manager > operator.
      */
     protected function configureGates(): void
     {
@@ -83,6 +86,26 @@ class AppServiceProvider extends ServiceProvider
 
             return $role !== null && $role->canViewAuditLog();
         });
+
+        // --- Panel access control (owner & manager) ---
+
+        $isOwner = fn (): bool => app(TenantContext::class)->role() === TenantRole::Owner;
+        $isOwnerOrManager = fn (): bool => in_array(app(TenantContext::class)->role(), [TenantRole::Owner, TenantRole::Manager], true);
+
+        Gate::define('panel.members.view', fn (User $user): bool => $isOwnerOrManager());
+        // Only the senior manager may define new managers.
+        Gate::define('panel.members.create-manager', fn (User $user): bool => $isOwner());
+        // Managers may add operators; owners may add any role.
+        Gate::define('panel.members.create-operator', fn (User $user): bool => $isOwnerOrManager());
+        // Suspend / remove members — owner only.
+        Gate::define('panel.members.manage', fn (User $user): bool => $isOwner());
+        // Issue a temporary password for an existing member — owner only.
+        Gate::define('panel.members.reset-password', fn (User $user): bool => $isOwner());
+        // Reset-request handling (view list + approve/reject) — owner/manager.
+        Gate::define('panel.reset-requests.view', fn (User $user): bool => $isOwnerOrManager());
+        Gate::define('panel.reset-requests.manage', fn (User $user): bool => $isOwnerOrManager());
+        // Bale settings (chat id, test message) — owner only.
+        Gate::define('panel.bale.manage', fn (User $user): bool => $user->isOwner());
     }
 
     /**
@@ -106,6 +129,19 @@ class AppServiceProvider extends ServiceProvider
                 entityId: $user->getKey(),
                 metadata: ['guard' => $event->guard],
             );
+        });
+
+        Event::listen(function (Logout $event): void {
+            if ($event->user instanceof User) {
+                app(AuditLogger::class)->log(
+                    action: 'auth.logout',
+                    tenant: null,
+                    actor: $event->user,
+                    entityType: 'user',
+                    entityId: $event->user->getKey(),
+                    metadata: ['guard' => $event->guard],
+                );
+            }
         });
 
         Event::listen(function (Failed $event): void {
