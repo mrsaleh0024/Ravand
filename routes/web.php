@@ -2,20 +2,26 @@
 
 use App\Http\Controllers\Auth\ForgotPasswordRequestController;
 use App\Http\Controllers\Auth\OtpChallengeController;
+use App\Http\Controllers\Catalog\ProductCategoryController;
+use App\Http\Controllers\Catalog\ProductController;
 use App\Http\Controllers\Customers\CustomerAddressController;
 use App\Http\Controllers\Customers\CustomerConsentController;
 use App\Http\Controllers\Customers\CustomerContactController;
 use App\Http\Controllers\Customers\CustomerController;
 use App\Http\Controllers\Customers\CustomerInteractionController;
+use App\Http\Controllers\Customers\CustomerLookupController;
 use App\Http\Controllers\Customers\CustomerMeasurementController;
 use App\Http\Controllers\Customers\CustomerNoteController;
 use App\Http\Controllers\Customers\CustomerPreferenceController;
 use App\Http\Controllers\Customers\CustomerSocialAccountController;
 use App\Http\Controllers\Customers\CustomerTagController;
 use App\Http\Controllers\Customers\TagController;
+use App\Http\Controllers\Inventory\InventoryController;
 use App\Http\Controllers\Panel\LiveController;
 use App\Http\Controllers\Panel\MemberController;
 use App\Http\Controllers\Panel\ResetRequestController;
+use App\Http\Controllers\Sales\OrderController;
+use App\Http\Controllers\Sales\OrderPaymentController;
 use App\Http\Controllers\Settings\ForcePasswordChangeController;
 use App\Http\Controllers\Tenancy\TenantSelectionController;
 use App\Http\Controllers\Webhook\BaleWebhookController;
@@ -114,6 +120,11 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         Route::get('customers/duplicates', [CustomerController::class, 'duplicates'])
             ->name('customers.duplicates');
 
+        // JSON customer picker for the order form (phase 03; must precede
+        // the {customer} binding; ADR-024 privacy rules apply to addresses).
+        Route::get('customers/lookup', CustomerLookupController::class)
+            ->name('customers.lookup');
+
         Route::post('customers', [CustomerController::class, 'store'])
             ->middleware('throttle:60,1')
             ->name('customers.store');
@@ -184,6 +195,84 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         Route::post('tags', [TagController::class, 'store'])
             ->middleware('can:tags.manage')
             ->name('tags.store');
+
+        // --- Catalog & inventory (phase 03, spec 5.3/5.4) --------------------
+        // Listing products/stock is open to every role (needed to record
+        // sales); maintenance is owner/manager.
+
+        Route::get('products', [ProductController::class, 'index'])
+            ->name('products.index');
+
+        Route::post('products', [ProductController::class, 'store'])
+            ->middleware('can:catalog.manage')
+            ->name('products.store');
+
+        Route::put('products/{product}', [ProductController::class, 'update'])
+            ->middleware('can:catalog.manage')
+            ->name('products.update');
+
+        Route::patch('products/{product}/toggle', [ProductController::class, 'toggle'])
+            ->middleware('can:catalog.manage')
+            ->name('products.toggle');
+
+        Route::post('product-categories', [ProductCategoryController::class, 'store'])
+            ->middleware('can:catalog.manage')
+            ->name('product-categories.store');
+
+        Route::put('product-categories/{category}', [ProductCategoryController::class, 'update'])
+            ->middleware('can:catalog.manage')
+            ->name('product-categories.update');
+
+        Route::patch('product-categories/{category}/toggle', [ProductCategoryController::class, 'toggle'])
+            ->middleware('can:catalog.manage')
+            ->name('product-categories.toggle');
+
+        Route::get('inventory', [InventoryController::class, 'index'])
+            ->name('inventory.index');
+
+        Route::post('inventory/movements', [InventoryController::class, 'store'])
+            ->middleware('can:inventory.manage')
+            ->name('inventory.movements.store');
+
+        // --- Orders & payments (phase 03, spec 5.5) --------------------------
+        // Recording sales/payments is open to every role (operators are the
+        // data-entry workforce); cancel/return/status/refund are gated.
+
+        Route::get('orders', [OrderController::class, 'index'])
+            ->name('orders.index');
+
+        Route::get('orders/create', [OrderController::class, 'create'])
+            ->name('orders.create');
+
+        Route::post('orders', [OrderController::class, 'store'])
+            ->middleware('throttle:60,1')
+            ->name('orders.store');
+
+        Route::get('orders/{order}', [OrderController::class, 'show'])
+            ->name('orders.show');
+
+        Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])
+            ->middleware('can:orders.manage')
+            ->name('orders.status');
+
+        Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel'])
+            ->middleware('can:orders.manage')
+            ->name('orders.cancel');
+
+        Route::patch('orders/{order}/return', [OrderController::class, 'markReturned'])
+            ->middleware('can:orders.manage')
+            ->name('orders.return');
+
+        Route::post('orders/{order}/payments', [OrderPaymentController::class, 'store'])
+            ->name('order-payments.store');
+
+        Route::patch('orders/{order}/payments/{payment}/refund', [OrderPaymentController::class, 'refund'])
+            ->middleware('can:payments.manage')
+            ->name('order-payments.refund');
+
+        Route::patch('orders/{order}/payments/{payment}/void', [OrderPaymentController::class, 'void'])
+            ->middleware('can:payments.manage')
+            ->name('order-payments.void');
     });
 });
 

@@ -239,6 +239,11 @@ class CustomerController extends Controller
             ->limit(50)
             ->get();
 
+        // Purchase history tab (phase 03, spec 5.5): latest 10 orders plus
+        // the derived counters — never stored by hand (spec 5.7).
+        $orders = $customer->orders()->with('items')->limit(10)->get();
+        $ordersTotal = $customer->orders()->count();
+
         return Inertia::render('customers/Show', [
             'customer' => $this->profilePayload($customer, $isPrivileged),
             'notes' => $notes->map(fn (CustomerNote $note): array => [
@@ -249,6 +254,18 @@ class CustomerController extends Controller
                 'created_at' => $note->created_at?->toISOString(),
             ])->all(),
             'interactions' => $interactions->map($this->interactionRow(...))->all(),
+            'orders' => $orders->map(function ($order): array {
+                return [
+                    'id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'status' => $order->status->value,
+                    'total_amount' => $order->total_amount,
+                    'currency_code' => $order->currency_code,
+                    'items_count' => $order->items->count(),
+                    'placed_at' => $order->placed_at?->toISOString(),
+                ];
+            })->all(),
+            'ordersTotal' => $ordersTotal,
             'isPrivileged' => $isPrivileged,
             'tags' => $this->tagOptions(),
             'duplicates' => $request->session()->get('duplicates', []),

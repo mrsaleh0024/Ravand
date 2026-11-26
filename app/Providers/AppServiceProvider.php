@@ -6,6 +6,10 @@ use App\Domain\Audit\AuditLogger;
 use App\Domain\Tenancy\TenantContext;
 use App\Domain\Tenancy\TenantRole;
 use App\Models\Customer;
+use App\Models\Order;
+use App\Models\Payment;
+use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\Tag;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -43,30 +47,29 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Tenant-scoped route model binding for customer CRM routes (phase 02).
-     * A customer id from another tenant (or a request without a resolved
-     * tenant context) resolves to 404 — the id alone never grants access
-     * (spec 2.2).
+     * Tenant-scoped route model binding for domain routes (phase 02/03).
+     * An id from another tenant (or a request without a resolved tenant
+     * context) resolves to 404 — the id alone never grants access
+     * (spec 2.2). The models' global tenant scope does the actual filtering.
      */
     protected function configureTenantScopedBindings(): void
     {
-        Route::bind('customer', function (string $value) {
-            $context = app(TenantContext::class);
+        $bindTenantScoped = function (string $parameter, string $modelClass): void {
+            Route::bind($parameter, function (string $value) use ($modelClass) {
+                $context = app(TenantContext::class);
 
-            abort_unless($context->has(), 404);
+                abort_unless($context->has(), 404);
 
-            return Customer::query()->findOrFail($value);
-        });
+                return $modelClass::query()->findOrFail($value);
+            });
+        };
 
-        Route::bind('tag', function (string $value) {
-            $context = app(TenantContext::class);
-
-            abort_unless($context->has(), 404);
-
-            return Tag::query()
-                ->where('tenant_id', $context->tenant()->id)
-                ->findOrFail($value);
-        });
+        $bindTenantScoped('customer', Customer::class);
+        $bindTenantScoped('tag', Tag::class);
+        $bindTenantScoped('product', Product::class);
+        $bindTenantScoped('category', ProductCategory::class);
+        $bindTenantScoped('order', Order::class);
+        $bindTenantScoped('payment', Payment::class);
     }
 
     /**
@@ -152,6 +155,18 @@ class AppServiceProvider extends ServiceProvider
 
             return $role !== null && $role->canManageMembers();
         });
+
+        // --- Sales & inventory (phase 03) ------------------------------------
+        // Catalog and stock maintenance are staff-level decisions.
+        Gate::define('catalog.manage', fn (User $user): bool => $isOwnerOrManager());
+        Gate::define('inventory.manage', fn (User $user): bool => $isOwnerOrManager());
+        // Cancel/return/status transitions move money and stock back.
+        Gate::define('orders.manage', fn (User $user): bool => $isOwnerOrManager());
+        // Refunding/voiding recorded payments — owner/manager.
+        Gate::define('payments.manage', fn (User $user): bool => $isOwnerOrManager());
+        // Viewing orders, recording sales and taking payments stay open to
+        // every active role: operators are the data-entry workforce
+        // (spec 8.2, «ثبت فروش دستی»).
     }
 
     /**
