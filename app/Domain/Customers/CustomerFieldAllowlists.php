@@ -21,7 +21,7 @@ final class CustomerFieldAllowlists
 
     public const CONTACT_TYPES = ['mobile', 'landline', 'email', 'other'];
 
-    public const SOCIAL_PLATFORMS = ['instagram', 'telegram', 'whatsapp', 'other'];
+    public const SOCIAL_PLATFORMS = ['instagram', 'telegram', 'whatsapp', 'eitaa', 'bale', 'rubika', 'other'];
 
     public const CONSENT_CHANNELS = ['sms', 'whatsapp', 'instagram', 'telegram', 'email', 'phone'];
 
