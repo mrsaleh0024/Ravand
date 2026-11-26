@@ -20,6 +20,39 @@ class CustomerCrmTest extends TestCase
 {
     use CreatesTenancy, RefreshDatabase;
 
+    public function test_customer_creation_supports_all_social_platforms_and_province_city(): void
+    {
+        [$owner, $tenant] = $this->createOwner('فروشگاه تست');
+
+        foreach (['eitaa', 'bale', 'rubika'] as $index => $platform) {
+            $this->actingAs($owner)->withCurrentTenant($owner, $tenant)
+                ->post(route('customers.store'), [
+                    'display_name' => "مشتری {$platform}",
+                    'social_platform' => $platform,
+                    'social_handle' => "customer_{$index}",
+                    'province' => 'تهران',
+                    'city' => 'تهران',
+                ])
+                ->assertRedirect();
+
+            $customer = Customer::query()
+                ->where('display_name', "مشتری {$platform}")
+                ->firstOrFail();
+
+            $this->assertDatabaseHas('customer_social_accounts', [
+                'customer_id' => $customer->id,
+                'platform' => $platform,
+                'username' => "customer_{$index}",
+            ]);
+
+            $this->assertDatabaseHas('customer_addresses', [
+                'customer_id' => $customer->id,
+                'province' => 'تهران',
+                'city' => 'تهران',
+            ]);
+        }
+    }
+
     public function test_customer_can_be_created_without_a_phone(): void
     {
         [$owner, $tenant] = $this->createOwner('فروشگاه تست');
